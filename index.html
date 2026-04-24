@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="description" content="Sojalim RDV — Prise de rendez-vous chargement. Sanders Euralis, Vic-en-Bigorre."/>
+  <title>Sojalim RDV — Sanders Euralis</title>
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="theme-color" content="#1a3a2a"/>
+  <link rel="stylesheet" href="css/app.css"/>
+</head>
+<body>
+<section class="hero">
+  <div class="hero__dots"></div>
+  <div class="hero__top">
+    <div class="hero__logos">
+      <img src="https://www.sanders.fr/wp-content/themes/sanders/dist/assets/logo-header-lv8jqXRJ.svg" alt="Sanders" onerror="this.style.display='none'"/>
+      <div class="hdr__sep"></div>
+      <img src="https://www.euralis.fr/wp-content/uploads/2021/09/logo.png" alt="Euralis" onerror="this.style.display='none'"/>
+    </div>
+    <button onclick="toggleLang()" class="btn btn--gh btn--sm" style="border-radius:20px" id="lang-btn">🇪🇸 Español</button>
+  </div>
+
+  <div class="hero__body">
+    <div>
+      <div class="hero__tag">🌱 <span id="ht">Seule unité de trituration de soja en Occitanie</span></div>
+      <h1 class="hero__h1">Sojalim<span>Sanders Euralis</span></h1>
+      <p class="hero__sub" id="hs">Plateforme de prise de rendez-vous chargement · Vic-en-Bigorre</p>
+      <div class="kpis">
+        <div class="kpi"><div style="font-size:1.1rem;margin-bottom:.3rem">🫘</div><div class="kpi__v">50 000 T</div><div class="kpi__l" id="k1">capacité annuelle</div></div>
+        <div class="kpi"><div style="font-size:1.1rem;margin-bottom:.3rem">📅</div><div class="kpi__v">2017</div><div class="kpi__l" id="k2">année de création</div></div>
+        <div class="kpi"><div style="font-size:1.1rem;margin-bottom:.3rem">⚙️</div><div class="kpi__v">2</div><div class="kpi__l" id="k3">lignes depuis 2022</div></div>
+        <div class="kpi"><div style="font-size:1.1rem;margin-bottom:.3rem">🌾</div><div class="kpi__v">750+</div><div class="kpi__l" id="k4">producteurs partenaires</div></div>
+      </div>
+      <div class="counter-wrap" id="counters" style="display:none">
+        <div class="counter"><span style="font-size:1.4rem">🚛</span><div><div class="counter__v" id="cnt-rdv">0</div><div class="counter__l" id="cnt-rdv-l">chargements cette année</div></div></div>
+        <div class="counter" style="background:rgba(82,183,136,.12);border-color:rgba(82,183,136,.3)"><span style="font-size:1.4rem">⚖️</span><div><div class="counter__v" id="cnt-t" style="color:#7dd3a8">0T</div><div class="counter__l" id="cnt-t-l">tonnes traitées</div></div></div>
+      </div>
+      <div class="certs" style="margin-top:1.2rem">
+        <span class="cert">✓ RSE « Exemplaire »</span>
+        <span class="cert">✓ Sans OGM · Non déforestée</span>
+        <span class="cert">✓ 100% France</span>
+        <span class="cert">✓ Financement UE NextGenerationEU</span>
+      </div>
+    </div>
+    <div>
+      <div class="auth-box">
+        <div class="demo">
+          <strong>🔑 Comptes de démonstration</strong>
+          👑 Admin : admin@sojalim.fr · <code>Admin2024!</code><br>
+          🚛 Transporteur : demo@transports.fr · <code>Demo2024!</code>
+        </div>
+        <div id="auth-area"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRODUITS -->
+<section style="background:white;padding:4rem 2.5rem">
+  <div class="wrap">
+    <h2 class="tc" id="pt">Nos produits</h2>
+    <p class="tc muted mb-lg" id="ps">100 % origine France · Sans OGM · Non déforestés</p>
+    <div class="g4">
+      <div class="card" style="padding:0;overflow:hidden"><div style="background:#2d6a4f;padding:1.4rem;text-align:center"><div style="font-size:2rem;margin-bottom:.4rem">🫘</div><strong style="color:white;font-family:Georgia,serif" id="p1n">Tourteau de soja</strong></div><div style="padding:1rem;font-size:.83rem;color:#5a5a46;line-height:1.6" id="p1d">Riche en protéines, sans OGM — filières animales du Sud-Ouest</div></div>
+      <div class="card" style="padding:0;overflow:hidden"><div style="background:#c9a84c;padding:1.4rem;text-align:center"><div style="font-size:2rem;margin-bottom:.4rem">🛢️</div><strong style="color:white;font-family:Georgia,serif" id="p2n">Huile de soja brute</strong></div><div style="padding:1rem;font-size:.83rem;color:#5a5a46;line-height:1.6" id="p2d">Extraite par pression, valorisée en nutrition animale</div></div>
+      <div class="card" style="padding:0;overflow:hidden"><div style="background:#52b788;padding:1.4rem;text-align:center"><div style="font-size:2rem;margin-bottom:.4rem">🌿</div><strong style="color:white;font-family:Georgia,serif" id="p3n">Coques de soja</strong></div><div style="padding:1rem;font-size:.83rem;color:#5a5a46;line-height:1.6" id="p3d">Coproduit valorisé en alimentation animale</div></div>
+      <div class="card" style="padding:0;overflow:hidden"><div style="background:#2980b9;padding:1.4rem;text-align:center"><div style="font-size:2rem;margin-bottom:.4rem">🌾</div><strong style="color:white;font-family:Georgia,serif" id="p4n">Soja en graines</strong></div><div style="padding:1rem;font-size:.83rem;color:#5a5a46;line-height:1.6" id="p4d">100 % origine France, conventionnel et biologique</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- COMMENT + HORAIRES + CONTACT -->
+<section style="padding:4rem 2.5rem;background:var(--bg)">
+  <div class="wrap">
+    <div class="g3">
+      <div>
+        <h3 id="hwt">Comment prendre rendez-vous ?</h3>
+        <div style="display:flex;flex-direction:column;gap:1.2rem;margin-top:1rem">
+          <div class="flex gap fxc"><div style="background:#1a3a2a;color:#e8c96e;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0">1</div><div style="color:#5a5a46;font-size:.9rem;line-height:1.5" id="hw1">Créez votre compte transporteur</div></div>
+          <div class="flex gap fxc"><div style="background:#1a3a2a;color:#e8c96e;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0">2</div><div style="color:#5a5a46;font-size:.9rem;line-height:1.5" id="hw2">Choisissez votre date et créneau</div></div>
+          <div class="flex gap fxc"><div style="background:#1a3a2a;color:#e8c96e;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0">3</div><div style="color:#5a5a46;font-size:.9rem;line-height:1.5" id="hw3">Renseignez les infos du chargement</div></div>
+          <div class="flex gap fxc"><div style="background:#1a3a2a;color:#e8c96e;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0">4</div><div style="color:#5a5a46;font-size:.9rem;line-height:1.5" id="hw4">Recevez votre confirmation par email</div></div>
+        </div>
+      </div>
+      <div>
+        <h3 id="scht">Horaires d'ouverture</h3>
+        <div class="card" style="background:linear-gradient(135deg,#1a3a2a 0%,#2d6a4f 100%);margin-top:1rem">
+          <div style="color:#e8c96e;font-weight:700;margin-bottom:.3rem" id="schd">Lundi — Vendredi</div>
+          <div style="color:white;font-size:2rem;font-family:Georgia,serif;font-weight:700;margin-bottom:.5rem">5h00 — 16h00</div>
+          <div style="color:rgba(245,240,232,.6);font-size:.8rem;margin-bottom:1rem" id="schn">Fermé les week-ends et jours fériés</div>
+          <div style="border-top:1px solid rgba(255,255,255,.15);padding-top:.8rem;display:flex;flex-direction:column;gap:.35rem">
+            <div style="color:rgba(245,240,232,.75);font-size:.82rem">🫘 Tourteau · 🛢️ Huile · 🌿 Coques · 🌾 Graines</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3 id="ct">Contact &amp; Accès</h3>
+        <div style="display:flex;flex-direction:column;gap:.9rem;margin-top:1rem">
+          <div class="flex gap-sm" style="align-items:flex-start"><span>📍</span><span style="color:#5a5a46;font-size:.88rem;line-height:1.5">193 Impasse Lautrec, 65500 Vic-en-Bigorre</span></div>
+          <div class="flex gap-sm"><span>📞</span><a href="tel:0562960000" style="color:#5a5a46;font-size:.88rem">05 62 96 00 00</a></div>
+          <div class="flex gap-sm"><span>✉️</span><a href="mailto:contact@sojalim.fr" style="color:#5a5a46;font-size:.88rem">contact@sojalim.fr</a></div>
+          <div class="flex gap-sm" style="align-items:flex-start"><span>🗺️</span><span style="color:#5a5a46;font-size:.88rem" id="cacc">À 20 min de Tarbes — A64 sortie Vic-en-Bigorre</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="flex fxc gap">
+    <img src="https://www.sanders.fr/wp-content/themes/sanders/dist/assets/logo-header-lv8jqXRJ.svg" alt="Sanders" onerror="this.style.display='none'"/>
+    <img src="https://www.euralis.fr/wp-content/uploads/2021/09/logo.png" alt="Euralis" onerror="this.style.display='none'"/>
+  </div>
+  <div class="footer__txt">SIRET 820 327 658 · 193 Impasse Lautrec, 65500 Vic-en-Bigorre</div>
+  <div class="flex fxc gap">
+    <div class="pwa-wrap">
+      <button class="btn btn--gh btn--sm pwa-btn" onclick="installPWA(this)" style="display:none;border-radius:10px">📲 Installer l'app</button>
+      <div class="pwa-tip"><p style="font-size:.82rem;color:var(--sub);margin-bottom:.3rem">🤖 Android : Menu ⋮ → Ajouter à l'écran d'accueil</p><p style="font-size:.82rem;color:var(--sub)">🍎 iPhone : Partager ⬆️ → Sur l'écran d'accueil</p></div>
+    </div>
+    <div class="footer__txt">Joint-venture Sanders × Euralis</div>
+  </div>
+</footer>
+
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/email.js"></script>
+<script>
+// Traductions
+const TX={fr:{'ht':'Seule unité de trituration de soja en Occitanie','hs':'Plateforme de prise de rendez-vous chargement · Vic-en-Bigorre','k1':'capacité annuelle','k2':'année de création','k3':'lignes depuis 2022','k4':'producteurs partenaires','pt':'Nos produits','ps':'100 % origine France · Sans OGM · Non déforestés','p1n':'Tourteau de soja','p1d':'Riche en protéines, sans OGM — filières animales du Sud-Ouest','p2n':'Huile de soja brute','p2d':'Extraite par pression, valorisée en nutrition animale','p3n':'Coques de soja','p3d':'Coproduit valorisé en alimentation animale','p4n':'Soja en graines','p4d':'100 % origine France, conventionnel et biologique','hwt':'Comment prendre rendez-vous ?','hw1':'Créez votre compte transporteur','hw2':'Choisissez votre date et créneau','hw3':'Renseignez les infos du chargement','hw4':'Recevez votre confirmation par email','scht':"Horaires d'ouverture",'schd':'Lundi — Vendredi','schn':'Fermé les week-ends et jours fériés','ct':'Contact & Accès','cacc':'À 20 min de Tarbes — A64 sortie Vic-en-Bigorre','lang-btn':'🇪🇸 Español','cnt-rdv-l':'chargements cette année','cnt-t-l':'tonnes traitées'},es:{'ht':'Única unidad de trituración de soja en Occitania','hs':'Plataforma de reserva de citas de carga · Vic-en-Bigorre','k1':'capacidad anual','k2':'año de creación','k3':'líneas desde 2022','k4':'agricultores asociados','pt':'Nuestros productos','ps':'100 % origen Francia · Sin OGM · Sin deforestación','p1n':'Harina de soja','p1d':'Rica en proteínas, sin OGM — ganadería del Suroeste','p2n':'Aceite de soja bruto','p2d':'Extraído por presión, nutrición animal','p3n':'Cáscaras de soja','p3d':'Subproducto en alimentación animal','p4n':'Soja en grano','p4d':'100 % origen Francia, convencional y ecológico','hwt':'¿Cómo reservar una cita?','hw1':'Cree su cuenta de transportista','hw2':'Elija su fecha y franja horaria','hw3':'Introduzca los datos de la carga','hw4':'Reciba su confirmación por correo','scht':'Horario de apertura','schd':'Lunes — Viernes','schn':'Cerrado fines de semana y festivos','ct':'Contacto y Acceso','cacc':'A 20 min de Tarbes — A64 salida Vic-en-Bigorre','lang-btn':'🇫🇷 Français','cnt-rdv-l':'cargas este año','cnt-t-l':'toneladas procesadas'}};
+const tx=TX[LANG]||TX.fr;
+document.documentElement.lang=LANG;
+Object.entries(tx).forEach(([id,v])=>{const e=document.getElementById(id);if(e)e.textContent=v;});
+
+// Auth forms
+const T={fr:{login:'Connexion',loginBtn:'Se connecter',noAcc:'Pas de compte ?',create:'Créer un compte',reg:'Créer un compte',regBtn:'Créer mon compte',hasAcc:'Déjà un compte ?',signIn:'Se connecter',fn:'Prénom *',ln:'Nom *',co:'Société / Transporteur *',em:'Email *',pw:'Mot de passe * (8 car.)',pc:'Confirmer *',ph:'Téléphone *',si:'SIRET *',ad:'Adresse *',pending:'✅ Compte créé — en attente de validation. Vous recevrez un email sous 24h.'},es:{login:'Iniciar sesión',loginBtn:'Conectarse',noAcc:'¿Sin cuenta?',create:'Crear una cuenta',reg:'Crear una cuenta',regBtn:'Crear mi cuenta',hasAcc:'¿Ya tiene cuenta?',signIn:'Iniciar sesión',fn:'Nombre *',ln:'Apellido *',co:'Empresa / Transportista *',em:'Correo electrónico *',pw:'Contraseña * (8 car.)',pc:'Confirmar *',ph:'Teléfono *',si:'SIRET / CIF *',ad:'Dirección *',pending:'✅ Cuenta creada — pendiente de validación. Recibirá un email en 24h.'}};
+const t=T[LANG]||T.fr;
+let mode='login';
+const urlParams=new URLSearchParams(location.search);
+const inviteToken=urlParams.get('token');
+const inviteRole=urlParams.get('role')||'transporter';
+if(inviteToken) mode='register';
+
+function renderAuth(){
+  const area=document.getElementById('auth-area');
+  if(mode==='login'){
+    area.innerHTML=`<h2 style="font-family:Georgia,serif;color:var(--green);margin-bottom:1.2rem;font-size:1.3rem">${t.login}</h2><div id="lal"></div><div style="display:flex;flex-direction:column;gap:.9rem"><div class="field"><label class="lbl">${t.em}</label><input class="inp" type="email" id="l-em" autocomplete="email"/></div><div class="field"><label class="lbl">${t.pw.split('*')[0]}</label><input class="inp" type="password" id="l-pw" autocomplete="current-password"/></div><button class="btn btn--p btn--fw" id="l-btn" onclick="doLogin()">${t.loginBtn}</button><p style="text-align:center;font-size:.87rem;color:var(--muted)">${t.noAcc} <a href="#" onclick="event.preventDefault();mode='register';renderAuth()" style="color:var(--mid);font-weight:700">${t.create}</a></p></div>`;
+    document.getElementById('l-pw').onkeydown=e=>{if(e.key==='Enter')doLogin();};
+  } else {
+    const roleLabel=inviteRole==='driver'?'🚛 Chauffeur':'🚛 Transporteur';
+    area.innerHTML=`<h2 style="font-family:Georgia,serif;color:var(--green);margin-bottom:1rem;font-size:1.25rem">${t.reg}</h2>${inviteToken?`<div class="al al--s">✉️ Invitation — compte <strong>${roleLabel}</strong></div>`:''}<div id="ral"></div><div class="fg" style="margin-bottom:.9rem"><div class="field"><label class="lbl">${t.fn}</label><input class="inp" id="r-fn"/></div><div class="field"><label class="lbl">${t.ln}</label><input class="inp" id="r-ln"/></div><div class="field s2"><label class="lbl">${t.co}</label><input class="inp" id="r-co"/></div><div class="field s2"><label class="lbl">${t.em}</label><input class="inp" type="email" id="r-em"/></div><div class="field"><label class="lbl">${t.pw}</label><input class="inp" type="password" id="r-pw"/></div><div class="field"><label class="lbl">${t.pc}</label><input class="inp" type="password" id="r-pc"/></div><div class="field"><label class="lbl">${t.ph}</label><input class="inp" id="r-ph" placeholder="06/+34"/></div><div class="field"><label class="lbl">${t.si}</label><input class="inp" id="r-si"/></div><div class="field s2"><label class="lbl">${t.ad}</label><input class="inp" id="r-ad"/></div></div><button class="btn btn--p btn--fw" id="r-btn" onclick="doRegister()">${t.regBtn}</button><p style="text-align:center;font-size:.87rem;color:var(--muted);margin-top:.7rem">${t.hasAcc} <a href="#" onclick="event.preventDefault();mode='login';renderAuth()" style="color:var(--mid);font-weight:700">${t.signIn}</a></p>`;
+  }
+}
+
+async function doLogin(){
+  const btn=document.getElementById('l-btn'),done=btnLoading(btn,'…');
+  document.getElementById('lal').innerHTML='';
+  try{const u=await Auth.login(document.getElementById('l-em').value.trim(),document.getElementById('l-pw').value);redirect(u.role);}
+  catch(e){done();document.getElementById('lal').innerHTML=`<div class="al al--e">${e.message}</div>`;}
+}
+
+async function doRegister(){
+  const btn=document.getElementById('r-btn'),done=btnLoading(btn,'…');
+  document.getElementById('ral').innerHTML='';
+  const pw=document.getElementById('r-pw').value;
+  if(pw!==document.getElementById('r-pc').value){done();document.getElementById('ral').innerHTML='<div class="al al--e">Les mots de passe ne correspondent pas.</div>';return;}
+  if(pw.length<8){done();document.getElementById('ral').innerHTML='<div class="al al--e">Mot de passe : 8 caractères minimum.</div>';return;}
+  try{
+    const res=await Auth.register({first_name:document.getElementById('r-fn').value.trim(),last_name:document.getElementById('r-ln').value.trim(),company:document.getElementById('r-co').value.trim(),email:document.getElementById('r-em').value.trim(),password:pw,phone:document.getElementById('r-ph').value.trim(),siret:document.getElementById('r-si').value.trim(),address:document.getElementById('r-ad').value.trim(),role:inviteToken?inviteRole:'transporter'},inviteToken);
+    if(res.status==='pending'){document.getElementById('auth-area').innerHTML=`<div class="al al--s" style="margin:0">${t.pending}</div>`;Email.pending(res.user);}
+    else{Email.welcome(res.user);redirect(res.role);}
+  }catch(e){done();document.getElementById('ral').innerHTML=`<div class="al al--e">${e.message}</div>`;}
+}
+
+function redirect(role){go(role==='admin'?'admin.html':'dashboard.html');}
+
+async function loadCounter(){
+  try{const year=new Date().getFullYear();const rows=await SB.select('appointments',{status:'eq.confirmed',date:`gte.${year}-01-01`,select:'tonnage'});if(!rows?.length)return;document.getElementById('cnt-rdv').textContent=rows.length;document.getElementById('cnt-t').textContent=rows.reduce((s,a)=>s+parseFloat(a.tonnage||0),0).toFixed(0)+'T';document.getElementById('counters').style.display='flex';}catch(e){console.log('counter:',e.message);}
+}
+
+const u=Auth.user();
+if(u&&!inviteToken){redirect(u.role);}
+else{renderAuth();loadCounter();}
+</script>
+</body>
+</html>

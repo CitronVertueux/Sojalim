@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Mon espace — Sojalim RDV</title>
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="theme-color" content="#1a3a2a"/>
+  <link rel="stylesheet" href="css/app.css"/>
+</head>
+<body>
+<header class="hdr">
+  <div class="hdr__logo">
+    <img src="https://www.sanders.fr/wp-content/themes/sanders/dist/assets/logo-header-lv8jqXRJ.svg" alt="Sanders" onerror="this.style.display='none'"/>
+    <div class="hdr__sep"></div>
+    <img src="https://www.euralis.fr/wp-content/uploads/2021/09/logo.png" alt="Euralis" onerror="this.style.display='none'"/>
+  </div>
+  <div class="hdr__nav">
+    <button class="hdr__btn on" onclick="showTab('new')"  id="tn">✚ Nouveau RDV</button>
+    <button class="hdr__btn"   onclick="showTab('hist')" id="th">📋 Mes RDV</button>
+    <button class="hdr__btn"   onclick="showTab('drivers')" id="td" id="tab-drivers-btn" style="display:none">👥 Mes Chauffeurs</button>
+    <button class="hdr__btn"   onclick="showTab('prof')" id="tp">👤 Mon Profil</button>
+    <span style="color:rgba(255,255,255,.25);margin:0 .2rem">|</span>
+    <span id="hdr-role" class="hdr__role"></span>
+    <span style="color:rgba(245,240,232,.6);font-size:.85rem">Bonjour <strong id="uname" style="color:#e8c96e"></strong></span>
+    <div class="pwa-wrap">
+      <button class="btn btn--gh btn--sm pwa-btn" onclick="installPWA(this)" style="display:none;border-radius:10px">📲</button>
+      <div class="pwa-tip"><p style="font-size:.82rem;color:var(--sub)">🤖 Menu ⋮ → Ajouter · 🍎 Partager → Écran d'accueil</p></div>
+    </div>
+    <button class="hdr__btn" onclick="Auth.logout()">🔒</button>
+  </div>
+</header>
+
+<div style="max-width:960px;margin:2rem auto;padding:0 1.5rem 4rem">
+  <div id="tab-new"     class="fade"></div>
+  <div id="tab-hist"    style="display:none"></div>
+  <div id="tab-drivers" style="display:none"></div>
+  <div id="tab-prof"    style="display:none"></div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/email.js"></script>
+<script src="js/rdv.js"></script>
+<script>
+let _u=null,_appts=[],_cl=[],_sett={maxTrucks:20},_drivers=[];
+let _step=1,_date='',_slot='',_hf='upcoming';
+
+async function init(){
+  _u=Auth.require(['transporter','driver']);
+  if(!_u)return;
+  document.getElementById('uname').textContent=_u.first_name;
+  const roleLabels={transporter:'🚛 Transporteur',driver:'🚛 Chauffeur'};
+  document.getElementById('hdr-role').textContent=roleLabels[_u.role]||'';
+
+  // Onglet chauffeurs uniquement pour les transporteurs
+  if(_u.role==='transporter'){
+    document.getElementById('tab-drivers-btn').style.display='';
+    document.getElementById('td').style.display='';
+  }
+
+  const[appts,cl,sett]=await Promise.all([
+    (_u.role==='transporter'?RDV.getTransporterAppts(_u.id):RDV.getUserAppts(_u.id)).catch(()=>[]),
+    RDV.getClosures().catch(()=>[]),
+    RDV.getSettings().catch(()=>({maxTrucks:20})),
+  ]);
+  _appts=appts;_cl=cl;_sett=sett;
+
+  if(_u.role==='transporter'){
+    _drivers=await SB.select('users',{parent_id:`eq.${_u.id}`,role:'eq.driver',select:'id,email,first_name,last_name,phone,status,created_at'}).catch(()=>[]);
+  }
+  showTab('new');
+}
+
+function showTab(tab){
+  ['new','hist','drivers','prof'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display=t===tab?'block':'none';
+    const b=document.getElementById('t'+t[0]);if(b)b.classList.toggle('on',t===tab);
+  });
+  if(tab==='new')    renderNew();
+  if(tab==='hist')   renderHist();
+  if(tab==='drivers')renderDrivers();
+  if(tab==='prof')   renderProf();
+}
+
+// ── NOUVEAU RDV ──────────────────────────────────────
+function renderNew(){
+  const c=document.getElementById('tab-new');
+  const da=_appts.filter(a=>a.date===_date&&a.status!=='cancelled');
+  const taken=da.map(a=>a.slot.slice(0,5));
+  const cap=da.filter(a=>a.status==='confirmed').length>=_sett.maxTrucks;
+  const open=isDayOpen(_date,_cl);
+  c.innerHTML=`
+    <div class="stepper">
+      <div class="step ${_step>1?'done':_step===1?'now':''}"><div class="step__ico">📅</div><div class="step__lbl">Date</div></div>
+      <div class="step ${_step>2?'done':_step===2?'now':''}"><div class="step__ico">🕐</div><div class="step__lbl">Créneau</div></div>
+      <div class="step ${_step===3?'now':''}"><div class="step__ico">📝</div><div class="step__lbl">Infos</div></div>
+    </div>
+    <div class="card">
+      <h3>📅 Choisissez votre date</h3>
+      <div class="field" style="max-width:260px;margin-bottom:.8rem">
+        <input class="inp" type="date" id="rdv-date" value="${_date}" min="${todayStr()}" onchange="changeDate(this.value)"/>
+      </div>
+      ${_date&&!open?`<div class="al al--e">${HOLIDAYS.has(_date)?'⚠️ Jour férié — Sojalim est fermé.':_cl.find(c=>c.date===_date)?'⚠️ Fermeture : '+_cl.find(c=>c.date===_date).reason:'⚠️ Sojalim est fermé le week-end.'}</div>`:''}
+      ${_date&&open&&cap?'<div class="al al--w">⚠️ Capacité atteinte — votre RDV sera en liste d\'attente.</div>':''}
+      <p class="muted" style="margin-top:.4rem">📌 Lundi–Vendredi · 5h00–16h00</p>
+      ${_step>=2&&_date&&open?`
+      <div style="margin-top:1.8rem;border-top:1px solid var(--border);padding-top:1.8rem">
+        <h3>🕐 Créneaux — ${fmtDate(_date)}</h3>
+        <div class="slots mb">
+          ${SLOTS.map(s=>`<button class="slot ${taken.includes(s)?'taken':_slot===s?'selected':''}" ${taken.includes(s)?'disabled':''} onclick="pickSlot('${s}')">${s}</button>`).join('')}
+        </div>
+        <p class="muted">🟢 Disponible · ⬛ Sélectionné · ⬜ Pris</p>
+      </div>`:''}
+      ${_step>=3&&_slot?`
+      <div style="margin-top:1.8rem;border-top:1px solid var(--border);padding-top:1.8rem">
+        <h3>📝 Informations du chargement</h3>
+        <div class="al al--s mb">✅ ${fmtDate(_date)} · ${_slot} – ${addMins(_slot,30)}</div>
+        <div class="fg">
+          <div class="field"><label class="lbl">Nom du chauffeur *</label><input class="inp" id="f-dn" value="${_u.role==='driver'?_u.first_name+' '+_u.last_name:''}"/></div>
+          <div class="field"><label class="lbl">Téléphone chauffeur *</label><input class="inp" id="f-dp" value="${_u.role==='driver'?_u.phone:''}" placeholder="06 / +34 6XX"/></div>
+          <div class="field"><label class="lbl">Immatriculation *</label><input class="inp" id="f-tp" placeholder="AB-123-CD"/></div>
+          <div class="field"><label class="lbl">Type de chargement *</label><select class="sel" id="f-lt">${LOAD_TYPES.map(lt=>`<option>${lt}</option>`).join('')}</select></div>
+          <div class="field"><label class="lbl">Tonnage (T) *</label><input class="inp" type="number" id="f-to" placeholder="28"/></div>
+          <div class="field"><label class="lbl">Bon de commande *</label><input class="inp" id="f-on" placeholder="BC-2024-XXXXX"/></div>
+          <div class="field s2"><label class="lbl">Notes</label><textarea class="ta" id="f-no"></textarea></div>
+        </div>
+        <div id="rdv-al"></div>
+        <button class="btn btn--p btn--fw" style="margin-top:1rem" onclick="submitRdv()">${cap?"Rejoindre la liste d'attente →":"Confirmer le rendez-vous →"}</button>
+      </div>`:''}
+    </div>`;
+}
+
+function changeDate(v){
+  _date=v;_slot='';
+  _step=v&&isDayOpen(v,_cl)?2:1;
+  // Recharge les RDV du jour si nécessaire
+  if(v&&isDayOpen(v,_cl)){
+    RDV.getDayAppts(v).then(da=>{
+      _appts=_appts.filter(a=>a.date!==v).concat(da);
+      renderNew();
+    });
+  } else renderNew();
+}
+
+function pickSlot(s){_slot=s;_step=3;renderNew();}
+
+async function submitRdv(){
+  const btn=document.querySelector('[onclick="submitRdv()"]'),done=btnLoading(btn,'…');
+  const data={date:_date,slot:_slot,driver_name:document.getElementById('f-dn').value.trim(),driver_phone:document.getElementById('f-dp').value.trim(),truck_plate:document.getElementById('f-tp').value.trim(),load_type:document.getElementById('f-lt').value,tonnage:document.getElementById('f-to').value,order_number:document.getElementById('f-on').value.trim(),notes:document.getElementById('f-no').value,company_name:_u.company};
+  if(!data.driver_name||!data.driver_phone||!data.truck_plate||!data.tonnage||!data.order_number){done();document.getElementById('rdv-al').innerHTML='<div class="al al--e">Tous les champs * sont obligatoires.</div>';return;}
+  try{
+    const{appt,status}=await RDV.create(_u,data);
+    _appts.push(appt);
+    document.getElementById('tab-new').innerHTML=`
+      <div class="card" style="background:var(--green);text-align:center;padding:3rem 2rem">
+        <div style="font-size:3rem;margin-bottom:1rem">${status==='waitlist'?'⏳':'✅'}</div>
+        <h2 style="color:var(--goldL);font-size:1.8rem;margin-bottom:.5rem">${status==='waitlist'?"Liste d'attente":"Rendez-vous confirmé !"}</h2>
+        <div style="background:rgba(255,255,255,.1);border:1px solid rgba(201,168,76,.3);border-radius:10px;padding:1.5rem;margin:1.5rem auto;max-width:460px;text-align:left">
+          <div style="color:var(--goldL);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem">Référence</div>
+          <div style="font-family:monospace;font-size:1.4rem;font-weight:700;color:white;margin-bottom:1.2rem">${appt.id}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.55rem;font-size:.87rem;color:rgba(245,240,232,.9)">
+            ${[['📅 Date',fmtDate(appt.date)],['🕐 Créneau',`${appt.slot}–${addMins(appt.slot,30)}`],['👤 Chauffeur',appt.driver_name],['📞 Tél.',appt.driver_phone],['🚛 Plaque',appt.truck_plate],['🫘 Chargement',appt.load_type],['⚖️ Tonnage',appt.tonnage+'T'],['📋 Bon de cmd',appt.order_number]].map(([l,v])=>`<div><span style="opacity:.6;display:block;font-size:.73rem">${l}</span><strong>${v}</strong></div>`).join('')}
+          </div>
+        </div>
+        <p style="color:rgba(245,240,232,.6);font-size:.88rem;margin-bottom:1.5rem">📧 Confirmation envoyée à ${_u.email}</p>
+        <button class="btn btn--g" onclick="resetRdv()">Prendre un autre rendez-vous</button>
+      </div>`;
+    Email.confirmed(_u,appt);
+  }catch(e){done();document.getElementById('rdv-al').innerHTML=`<div class="al al--e">${e.message}</div>`;}
+}
+
+function resetRdv(){_step=1;_date='';_slot='';renderNew();}
+
+// ── HISTORIQUE ────────────────────────────────────────
+function renderHist(){
+  const c=document.getElementById('tab-hist'),now=todayStr();
+  const list=_appts.filter(a=>{
+    if(_hf==='upcoming')return a.date>=now&&a.status!=='cancelled';
+    if(_hf==='past')return a.date<now;
+    if(_hf==='cancelled')return a.status==='cancelled';
+    return true;
+  }).sort((a,b)=>a.date.localeCompare(b.date)||a.slot.localeCompare(b.slot));
+  c.innerHTML=`
+    <h2>Mes rendez-vous</h2>
+    <div class="flex gap-sm mb" style="flex-wrap:wrap">
+      ${[['upcoming','📅 À venir'],['past','✅ Passés'],['cancelled','❌ Annulés'],['all','Tous']].map(([v,l])=>`<button class="btn btn--pill btn--o ${_hf===v?'on':''}" onclick="_hf='${v}';renderHist()">${l}</button>`).join('')}
+    </div>
+    ${list.length===0?`<div class="card tc" style="padding:3rem"><div style="font-size:2.5rem;margin-bottom:1rem">📭</div><p class="muted">Aucun rendez-vous ici.</p><button class="btn btn--p mt" onclick="showTab('new')">Prendre un RDV</button></div>`:
+    list.map(a=>{
+      const xx=a.status==='cancelled',wl=a.status==='waitlist';
+      const sc=xx?'var(--red)':wl?'var(--orange)':'#27ae60';
+      const did='d'+a.id.replace(/[^a-z0-9]/gi,'');
+      return`<div class="appt">
+        <div class="appt__hd" onclick="toggleDetail('${did}')">
+          <div class="appt__slot ${xx?'xx':wl?'wl':''}">${a.slot.slice(0,5)}</div>
+          <div class="appt__info"><div class="appt__title">${fmtDate(a.date)}</div><div class="appt__sub">${a.truck_plate} · ${a.load_type} · ${a.tonnage}T</div></div>
+          <span style="color:${sc};font-size:.8rem;font-weight:700">${xx?'❌':wl?'⏳':'✅'}</span>
+          <span style="color:var(--muted);margin-left:.4rem">▼</span>
+        </div>
+        <div class="appt__detail" id="${did}">
+          <div class="appt__grid">
+            ${[['Chauffeur',a.driver_name],['Téléphone',a.driver_phone||'—'],['Plaque',a.truck_plate],['Chargement',a.load_type],['Tonnage',a.tonnage+'T'],['Bon de cmd',a.order_number],['Société',a.company_name||'—'],['Notes',a.notes||'—'],['Référence',a.id]].map(([l,v])=>`<div><span class="df__l">${l}</span><span class="df__v">${v}</span></div>`).join('')}
+          </div>
+          ${!xx&&a.date>=now?`<button class="btn btn--r btn--sm" onclick="cancelAppt('${a.id}')">❌ Annuler ce RDV</button>`:''}
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+
+async function cancelAppt(id){
+  if(!confirm('Confirmer l\'annulation ?'))return;
+  await RDV.cancel(id);
+  const a=_appts.find(x=>x.id===id);
+  _appts=_appts.map(x=>x.id===id?{...x,status:'cancelled'}:x);
+  if(a)Email.cancelled(_u,a);
+  renderHist();
+}
+
+// ── CHAUFFEURS (transporteur seulement) ───────────────
+function renderDrivers(){
+  const c=document.getElementById('tab-drivers');
+  c.innerHTML=`
+    <div class="flex fxb mb" style="flex-wrap:wrap;gap:.8rem">
+      <h2 style="margin:0">Mes Chauffeurs</h2>
+      <button class="btn btn--p" onclick="showInviteDriver()">+ Inviter un chauffeur</button>
+    </div>
+    <div id="inv-driver-form"></div>
+    ${_drivers.length===0?`<div class="card tc" style="padding:3rem"><div style="font-size:2.5rem;margin-bottom:1rem">👥</div><p class="muted">Aucun chauffeur encore. Invitez vos chauffeurs pour qu'ils puissent prendre des RDV.</p></div>`:
+    `<div style="display:flex;flex-direction:column;gap:.7rem">
+      ${_drivers.map(d=>`
+      <div class="user-card">
+        <div class="user-card__avatar" style="background:var(--blue)">🚛</div>
+        <div class="user-card__info">
+          <div class="user-card__name">${d.first_name} ${d.last_name}</div>
+          <div class="user-card__sub">${d.email} · ${d.phone}</div>
+        </div>
+        <span class="badge ${d.status==='active'?'badge--g':d.status==='pending'?'badge--o':'badge--r'}">${d.status==='active'?'✅ Actif':d.status==='pending'?'⏳ En attente':'🔴 Désactivé'}</span>
+        <div class="user-card__actions">
+          ${d.status!=='disabled'?`<button class="btn btn--r btn--sm" onclick="disableDriver('${d.id}')">Désactiver</button>`:''}
+        </div>
+      </div>`).join('')}
+    </div>`}`;
+}
+
+function showInviteDriver(){
+  document.getElementById('inv-driver-form').innerHTML=`
+    <div class="card card--b mb" style="border:2px solid var(--mid)">
+      <h3 style="margin-bottom:.8rem">✉️ Inviter un chauffeur</h3>
+      <p style="color:var(--sub);font-size:.87rem;margin-bottom:1rem">Le chauffeur recevra un email avec un lien pour créer son compte. Une fois inscrit, il pourra prendre des RDV en votre nom.</p>
+      <div id="inv-d-al"></div>
+      <div class="fg">
+        <div class="field"><label class="lbl">Email du chauffeur *</label><input class="inp" id="inv-em" type="email" placeholder="chauffeur@email.fr"/></div>
+        <div class="field"><label class="lbl">Note (optionnel)</label><input class="inp" id="inv-no" placeholder="ex: Chauffeur espagnol, camion 40T"/></div>
+      </div>
+      <div class="flex gap-sm mt">
+        <button class="btn btn--p" onclick="sendDriverInvite()">✉️ Envoyer l'invitation</button>
+        <button class="btn btn--o" onclick="document.getElementById('inv-driver-form').innerHTML=''">Annuler</button>
+      </div>
+    </div>`;
+}
+
+async function sendDriverInvite(){
+  const em=document.getElementById('inv-em').value.trim();
+  const no=document.getElementById('inv-no').value.trim();
+  const al=document.getElementById('inv-d-al');
+  try{
+    const inv=await Auth.createInvitation(em,'driver',_u.id,no);
+    await Email.inviteDriver(em,inv.token,_u,no);
+    al.innerHTML='<div class="al al--s">✅ Invitation envoyée à '+em+'</div>';
+    document.getElementById('inv-em').value='';document.getElementById('inv-no').value='';
+    setTimeout(()=>{document.getElementById('inv-driver-form').innerHTML='';},3000);
+  }catch(e){al.innerHTML=`<div class="al al--e">${e.message}</div>`;}
+}
+
+async function disableDriver(id){
+  if(!confirm('Désactiver ce chauffeur ?'))return;
+  await SB.update('users',{id:`eq.${id}`},{status:'disabled'});
+  _drivers=_drivers.map(d=>d.id===id?{...d,status:'disabled'}:d);
+  renderDrivers();
+}
+
+// ── PROFIL ────────────────────────────────────────────
+function renderProf(){
+  const c=document.getElementById('tab-prof'),u=_u;
+  c.innerHTML=`
+    <h2>Mon Profil</h2>
+    <div class="card">
+      <div id="pal"></div>
+      <div class="fg">
+        <div class="field"><label class="lbl">Prénom</label><input class="inp" id="p-fn" value="${u.first_name||''}"/></div>
+        <div class="field"><label class="lbl">Nom</label><input class="inp" id="p-ln" value="${u.last_name||''}"/></div>
+        <div class="field"><label class="lbl">Société</label><input class="inp" id="p-co" value="${u.company||''}"/></div>
+        <div class="field"><label class="lbl">Téléphone</label><input class="inp" id="p-ph" value="${u.phone||''}"/></div>
+        <div class="field"><label class="lbl">SIRET</label><input class="inp" id="p-si" value="${u.siret||''}"/></div>
+        <div class="field"><label class="lbl">Email</label><input class="inp" type="email" id="p-em" value="${u.email||''}"/></div>
+        <div class="field s2"><label class="lbl">Adresse</label><input class="inp" id="p-ad" value="${u.address||''}"/></div>
+        <div class="field"><label class="lbl">Nouveau mot de passe</label><input class="inp" type="password" id="p-pw" placeholder="Laisser vide = inchangé"/></div>
+      </div>
+      <button class="btn btn--p mt" onclick="saveProf()">Enregistrer</button>
+    </div>`;
+}
+
+async function saveProf(){
+  const al=document.getElementById('pal');
+  try{
+    await Auth.updateProfile(_u.id,{first_name:document.getElementById('p-fn').value.trim(),last_name:document.getElementById('p-ln').value.trim(),company:document.getElementById('p-co').value.trim(),phone:document.getElementById('p-ph').value.trim(),siret:document.getElementById('p-si').value.trim(),email:document.getElementById('p-em').value.trim(),address:document.getElementById('p-ad').value.trim(),password:document.getElementById('p-pw').value||undefined});
+    _u=Auth.user();
+    document.getElementById('uname').textContent=_u.first_name;
+    showAlert(al,'✅ Profil mis à jour !','success');
+  }catch(e){showAlert(al,e.message);}
+}
+
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "name": "Sojalim RDV — Sanders Euralis",
+  "short_name": "Sojalim RDV",
+  "description": "Plateforme de prise de rendez-vous chargement — Vic-en-Bigorre",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#1a3a2a",
+  "theme_color": "#1a3a2a",
+  "orientation": "portrait-primary",
+  "lang": "fr",
+  "icons": [
+    { "src": "img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Nouveau RDV", "url": "dashboard.html", "icons": [{ "src": "img/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
