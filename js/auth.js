@@ -15,7 +15,7 @@ const Auth = {
     return u;
   },
 
-  async login(email, password) {
+ async login(email, password) {
     const rows = await SB.select('users', {
       email: `eq.${email.toLowerCase().trim()}`,
       select: 'id,email,role,first_name,last_name,company,phone,siret,address,status,parent_id,password_hash'
@@ -25,8 +25,13 @@ const Auth = {
     if (u.status === 'disabled') throw new Error('Compte désactivé. Contactez l\'administrateur.');
     if (u.status === 'pending')  throw new Error('Compte en attente d\'activation.');
 
-    const ok = await SB.rpc('check_password', { input_password: password, hashed_password: u.password_hash });
-    if (!ok) throw new Error('Email ou mot de passe incorrect.');
+    // Vérification mot de passe via RPC
+    const result = await SB.rpc('check_password', {
+      input_password: password,
+      hashed_password: u.password_hash
+    });
+    
+    if (!result) throw new Error('Email ou mot de passe incorrect.');
 
     await SB.update('users', { id: `eq.${u.id}` }, { last_login: new Date().toISOString() });
     delete u.password_hash;
