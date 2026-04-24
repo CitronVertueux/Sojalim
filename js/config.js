@@ -3,12 +3,11 @@
 // IMPORTANT : remplacer SUPABASE_URL et SUPABASE_ANON_KEY
 // ═══════════════════════════════════════════════════
 
-const SUPABASE_URL      = 'https://VOTRE_PROJET.supabase.co';
-const SUPABASE_ANON_KEY = 'votre_cle_anon_publique_ici';
-const RESEND_API_KEY    = 'votre_cle_resend_ici'; // re_XXXXXXXX
-const APP_URL           = 'https://VOTRE_USER.github.io/sojalim';
+const SUPABASE_URL      = 'https://btdrbvbchccqjzwyhcfg.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0ZHJidmJjaGNjcWp6d3loY2ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MzQ1OTcsImV4cCI6MjA5MjUxMDU5N30.FGEwM0hz7kevHw3MM-ZQZtTLeHda4XPxvsYrr2cUcb8';
+const RESEND_API_KEY    = 're_Ns2Be95p_6tQTq2zWHLj71CSy11NHTjvb';
+const APP_URL           = 'https://citronvertueux.github.io/Sojalim';
 const MAIL_FROM         = 'onboarding@resend.dev';
-
 // ── CLIENT SUPABASE LÉGER (sans librairie) ──────────
 const SB = {
   async _req(method, path, body, qs = {}) {
