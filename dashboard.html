@@ -54,7 +54,8 @@ async function init(){
 
   // Onglet chauffeurs uniquement pour les transporteurs
   if(_u.role==='transporter'){
-    document.getElementById('tab-drivers-btn').style.display='';
+    const driversBtn = document.getElementById('tab-drivers-btn');
+if (driversBtn) driversBtn.style.display='';
     document.getElementById('td').style.display='';
   }
 
