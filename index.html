@@ -154,7 +154,7 @@ function renderAuth(){
 async function doLogin(){
   const btn=document.getElementById('l-btn'),done=btnLoading(btn,'…');
   document.getElementById('lal').innerHTML='';
-  try{const u=await Auth.login(document.getElementById('l-em').value.trim(),document.getElementById('l-pw').value);go(u.role==='admin'?'admin.html':u.role==='manager'||u.role==='staff'?'staff.html':'dashboard.html');}
+  try{const u=await Auth.login(document.getElementById('l-em').value.trim(),document.getElementById('l-pw').value);goApp(u.role);}
   catch(e){done();document.getElementById('lal').innerHTML=`<div class="al al--e">${e.message}</div>`;}
 }
 
@@ -167,8 +167,17 @@ async function doRegister(){
   try{
     const res=await Auth.register({first_name:document.getElementById('r-fn').value.trim(),last_name:document.getElementById('r-ln').value.trim(),company:document.getElementById('r-co').value.trim(),email:document.getElementById('r-em').value.trim(),password:pw,phone:document.getElementById('r-ph').value.trim(),siret:document.getElementById('r-si').value.trim(),address:document.getElementById('r-ad').value.trim(),role:inviteToken?inviteRole:'transporter'},inviteToken);
     if(res.status==='pending'){document.getElementById('auth-area').innerHTML=`<div class="al al--s" style="margin:0">${t.pending}</div>`;Email.pending(res.user);}
-    else{Email.welcome(res.user);go(res.role==='admin'?'admin.html':'dashboard.html');}
+    else{Email.welcome(res.user);goApp(res.role);}
   }catch(e){done();document.getElementById('ral').innerHTML=`<div class="al al--e">${e.message}</div>`;}
+}
+
+function isMobile(){
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)||window.innerWidth<768;
+}
+function goApp(role){
+  if(role==='admin')return go('admin.html');
+  if(role==='manager'||role==='staff')return go('staff.html');
+  go(isMobile()?'app.html':'dashboard.html');
 }
 
 async function loadCounter(){
@@ -183,7 +192,7 @@ async function loadCounter(){
 }
 
 const u=Auth.user();
-if(u&&!inviteToken){go(u.role==='admin'?'admin.html':u.role==='manager'||u.role==='staff'?'staff.html':'dashboard.html');}
+if(u&&!inviteToken){goApp(u.role);}
 else{renderAuth();loadCounter();}
 </script>
 </body>
