@@ -154,7 +154,7 @@ function renderAuth(){
 async function doLogin(){
   const btn=document.getElementById('l-btn'),done=btnLoading(btn,'…');
   document.getElementById('lal').innerHTML='';
-  try{const u=await Auth.login(document.getElementById('l-em').value.trim(),document.getElementById('l-pw').value);go(u.role==='admin'?'admin.html':'dashboard.html');}
+  try{const u=await Auth.login(document.getElementById('l-em').value.trim(),document.getElementById('l-pw').value);go(u.role==='admin'?'admin.html':u.role==='manager'||u.role==='staff'?'staff.html':'dashboard.html');}
   catch(e){done();document.getElementById('lal').innerHTML=`<div class="al al--e">${e.message}</div>`;}
 }
 
@@ -183,7 +183,7 @@ async function loadCounter(){
 }
 
 const u=Auth.user();
-if(u&&!inviteToken){go(u.role==='admin'?'admin.html':'dashboard.html');}
+if(u&&!inviteToken){go(u.role==='admin'?'admin.html':u.role==='manager'||u.role==='staff'?'staff.html':'dashboard.html');}
 else{renderAuth();loadCounter();}
 </script>
 </body>

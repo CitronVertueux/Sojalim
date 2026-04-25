@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Sojalim — Espace Interne</title>
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="theme-color" content="#1a3a2a"/>
+  <link rel="stylesheet" href="css/app.css"/>
+</head>
+<body>
+<!-- TOP BAR BLANCHE -->
+<div style="position:sticky;top:0;z-index:100;background:white;border-bottom:1px solid #e0ddd5;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+  <div style="max-width:1100px;margin:0 auto;padding:.6rem 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+    <img src="logo.png" alt="Sojalim" style="height:42px;object-fit:contain"/>
+    <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+      <span id="staff-role" class="badge badge--g" style="font-size:.8rem"></span>
+      <span style="color:var(--sub);font-size:.85rem">Bonjour <strong id="staff-name" style="color:var(--green)"></strong></span>
+      <button class="btn btn--sm" style="background:var(--green);color:white;border:none" onclick="Auth.logout()">🔒 Déconnexion</button>
+    </div>
+  </div>
+  <!-- Onglets nav -->
+  <div style="max-width:1100px;margin:0 auto;padding:0 1.5rem;display:flex;gap:.2rem;border-top:1px solid #f0ede8;overflow-x:auto">
+    <button class="staff-tab on" id="st-plan" onclick="sTab('plan')">📅 Planning</button>
+    <button class="staff-tab" id="st-stats" onclick="sTab('stats')" style="display:none">📊 Statistiques</button>
+    <button class="staff-tab" id="st-notes" onclick="sTab('notes')" style="display:none">📝 Notes</button>
+    <button class="staff-tab" id="st-accounts" onclick="sTab('accounts')" style="display:none">👥 Comptes</button>
+    <button class="staff-tab" id="st-invites" onclick="sTab('invites')" style="display:none">✉️ Invitations</button>
+    <button class="staff-tab" id="st-incidents" onclick="sTab('incidents')" style="display:none">⚠️ Incidents</button>
+    <button class="staff-tab" id="st-closures" onclick="sTab('closures')" style="display:none">🚫 Fermetures</button>
+  </div>
+</div>
+
+<div style="max-width:1100px;margin:1.5rem auto;padding:0 1.5rem 4rem" id="staff-content">
+  <div class="loader"><div class="spinner"></div></div>
+</div>
+
+<style>
+  .staff-tab{padding:.6rem 1.1rem;border:none;background:transparent;color:var(--muted);font-weight:600;font-size:.84rem;cursor:pointer;font-family:inherit;border-bottom:3px solid transparent;transition:all .15s;white-space:nowrap}
+  .staff-tab:hover{color:var(--mid)}
+  .staff-tab.on{color:var(--green);border-bottom-color:var(--green)}
+</style>
+
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/email.js"></script>
+<script src="js/rdv.js"></script>
+<script>
+let _u=null,_perms={},_appts=[],_cl=[],_sett={},_users=[],_scores=[],_incidents=[];
+let _pd=todayStr(),_tab='plan';
+
+async function init(){
+  _u=Auth.require(['admin','manager','staff']);
+  if(!_u)return;
+  // Admin redirige vers admin.html
+  if(_u.role==='admin'){go('admin.html');return;}
+
+  document.getElementById('staff-name').textContent=_u.first_name;
+  const roleLabels={manager:'🏭 Responsable',staff:'👷 Employé'};
+  document.getElementById('staff-role').textContent=roleLabels[_u.role]||_u.role;
+
+  // Charge les permissions
+  const rows=await SB.select('role_permissions',{role:`eq.${_u.role}`,enabled:'eq.true',select:'permission'}).catch(()=>[]);
+  rows.forEach(r=>_perms[r.permission]=true);
+
+  // Affiche les onglets selon permissions
+  if(_perms.stats_view)     document.getElementById('st-stats').style.display='';
+  if(_perms.notes_view)     document.getElementById('st-notes').style.display='';
+  if(_perms.accounts_view)  document.getElementById('st-accounts').style.display='';
+  if(_perms.invitations_send) document.getElementById('st-invites').style.display='';
+  if(_perms.incidents_manage) document.getElementById('st-incidents').style.display='';
+  if(_perms.closures_manage)  document.getElementById('st-closures').style.display='';
+
+  // Charge les données
+  const[a,c,s,u,sc,inc]=await Promise.all([
+    RDV.getAllAppts().catch(()=>[]),
+    RDV.getClosures().catch(()=>[]),
+    RDV.getSettings().catch(()=>({maxTrucks:20})),
+    _perms.accounts_view?SB.select('users',{select:'id,email,role,first_name,last_name,company,phone,status',order:'created_at.desc'}).catch(()=>[]):Promise.resolve([]),
+    _perms.stats_view?RDV.getAllScores().catch(()=>[]):Promise.resolve([]),
+    _perms.incidents_manage?RDV.getAllIncidents().catch(()=>[]):Promise.resolve([]),
+  ]);
+  _appts=a;_cl=c;_sett=s;_users=u||[];_scores=sc||[];_incidents=inc||[];
+
+  sTab('plan');
+}
+
+function sTab(tab){
+  _tab=tab;
+  document.querySelectorAll('.staff-tab').forEach(b=>b.classList.remove('on'));
+  const bt=document.getElementById('st-'+tab);
+  if(bt)bt.classList.add('on');
+  const fns={plan:rPlan,stats:rStats,notes:rNotes,accounts:rAccounts,invites:rInvites,incidents:rIncidents,closures:rClosures};
+  if(fns[tab])fns[tab]();
+}
+
+// ── PLANNING ──────────────────────────────────────────
+function rPlan(){
+  const c=document.getElementById('staff-content');
+  const da=_appts.filter(a=>a.date===_pd&&a.status!=='cancelled').sort((a,b)=>a.slot.localeCompare(b.slot));
+  const conf=da.filter(a=>a.status==='confirmed');
+  const wl=da.filter(a=>a.status==='waitlist');
+  const tonn=conf.reduce((s,a)=>s+parseFloat(a.tonnage||0),0);
+
+  c.innerHTML=`
+    <div class="section-hdr">
+      <h2>📅 Planning du jour</h2>
+      <div class="flex gap-sm">
+        <button class="btn btn--o btn--sm" onclick="_pd=new Date(new Date(_pd).getTime()-86400000).toISOString().split('T')[0];while(new Date(_pd).getDay()===0||new Date(_pd).getDay()===6)_pd=new Date(new Date(_pd).getTime()-86400000).toISOString().split('T')[0];rPlan()">◀</button>
+        <input type="date" value="${_pd}" style="border:1.5px solid var(--border);border-radius:8px;padding:.4rem .7rem;font-weight:700;color:var(--green);font-family:inherit;cursor:pointer" onchange="_pd=this.value;rPlan()"/>
+        <button class="btn btn--o btn--sm" onclick="_pd=new Date(new Date(_pd).getTime()+86400000).toISOString().split('T')[0];while(new Date(_pd).getDay()===0||new Date(_pd).getDay()===6)_pd=new Date(new Date(_pd).getTime()+86400000).toISOString().split('T')[0];rPlan()">▶</button>
+        ${_perms.planning_export?`<button class="btn btn--g btn--sm" onclick="exportPDF()">📄 Export PDF</button>`:''}
+      </div>
+    </div>
+    <div style="font-size:.88rem;color:var(--sub);margin-bottom:1rem">${fmtDate(_pd)}</div>
+
+    <!-- Stats jour -->
+    <div class="g4 mb">
+      <div class="card" style="border-left:4px solid #27ae60;padding:1rem"><div>✅</div><div style="font-size:1.8rem;font-weight:800;color:#27ae60">${conf.length}</div><div style="font-size:.76rem;color:var(--muted)">Confirmés</div></div>
+      <div class="card" style="border-left:4px solid var(--gold);padding:1rem"><div>⚖️</div><div style="font-size:1.8rem;font-weight:800;color:var(--gold)">${tonn.toFixed(0)}T</div><div style="font-size:.76rem;color:var(--muted)">Tonnage</div></div>
+      <div class="card" style="border-left:4px solid var(--orange);padding:1rem"><div>⏳</div><div style="font-size:1.8rem;font-weight:800;color:var(--orange)">${wl.length}</div><div style="font-size:.76rem;color:var(--muted)">En attente</div></div>
+      <div class="card" style="border-left:4px solid var(--blue);padding:1rem"><div>🚛</div><div style="font-size:1.8rem;font-weight:800;color:var(--blue)">${new Set(conf.map(a=>a.company_name)).size}</div><div style="font-size:.76rem;color:var(--muted)">Transporteurs</div></div>
+    </div>
+
+    <!-- Tableau -->
+    ${conf.length===0?`<div class="card tc" style="padding:3rem"><div style="font-size:2.5rem;margin-bottom:1rem">📭</div><p class="muted">Aucun rendez-vous confirmé ce jour</p></div>`:`
+    <div class="card" style="padding:0;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse;font-size:.88rem">
+        <thead><tr style="background:var(--green)">
+          <th style="color:white;padding:.7rem 1rem;text-align:left;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Créneau</th>
+          <th style="color:white;padding:.7rem 1rem;text-align:left;font-size:.78rem;text-transform:uppercase">Chauffeur</th>
+          <th style="color:white;padding:.7rem 1rem;text-align:left;font-size:.78rem;text-transform:uppercase">Plaque</th>
+          <th style="color:white;padding:.7rem 1rem;text-align:left;font-size:.78rem;text-transform:uppercase">Société</th>
+          <th style="color:white;padding:.7rem 1rem;text-align:left;font-size:.78rem;text-transform:uppercase">Chargement</th>
+          <th style="color:white;padding:.7rem 1rem;text-align:center;font-size:.78rem;text-transform:uppercase">Tonnage</th>
+          <th style="color:white;padding:.7rem 1rem;text-align:left;font-size:.78rem;text-transform:uppercase">Bon de cmd</th>
+          ${_perms.incidents_manage?`<th style="color:white;padding:.7rem 1rem;text-align:center;font-size:.78rem;text-transform:uppercase">Incident</th>`:''}
+          <th style="color:white;padding:.7rem 1rem;text-align:center;font-size:.78rem;text-transform:uppercase">✓</th>
+        </tr></thead>
+        <tbody>
+          ${conf.map((a,i)=>`<tr style="border-bottom:1px solid var(--border);background:${i%2===0?'white':'#faf8f4'}" id="row-${a.id}">
+            <td style="padding:.75rem 1rem"><span style="background:var(--green);color:white;padding:.25rem .6rem;border-radius:5px;font-weight:700;font-size:.82rem">${a.slot.slice(0,5)}</span></td>
+            <td style="padding:.75rem 1rem;font-weight:700">${a.driver_name}<br><span style="font-size:.75rem;color:var(--muted)">${a.driver_phone||''}</span></td>
+            <td style="padding:.75rem 1rem;font-family:monospace;font-weight:700">${a.truck_plate}</td>
+            <td style="padding:.75rem 1rem;font-size:.84rem">${a.company_name||'—'}</td>
+            <td style="padding:.75rem 1rem"><span style="background:var(--g10);color:var(--mid);padding:.2rem .55rem;border-radius:4px;font-size:.78rem;font-weight:600">${a.load_type}</span></td>
+            <td style="padding:.75rem 1rem;text-align:center;font-weight:700;color:var(--mid)">${a.tonnage}T</td>
+            <td style="padding:.75rem 1rem;font-size:.82rem;color:var(--sub)">${a.order_number}</td>
+            ${_perms.incidents_manage?`<td style="padding:.75rem 1rem;text-align:center"><button class="btn btn--sm" style="background:#fff8e6;color:var(--orange);border:1px solid #ffe082;font-size:.75rem" onclick="showInc('${a.id}','${a.transporter_id}')">⚠️</button></td>`:''}
+            <td style="padding:.75rem 1rem;text-align:center">
+              <div onclick="toggleCheck(this)" style="width:22px;height:22px;border:2px solid var(--green);border-radius:4px;cursor:pointer;margin:0 auto;transition:all .15s"></div>
+            </td>
+          </tr>
+          <tr id="inc-row-${a.id}" style="display:none"><td colspan="9" style="padding:0 1rem 1rem"></td></tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`}
+    ${wl.length>0?`<div class="card card--y mt"><h3 style="color:var(--orange);margin-bottom:.7rem">⏳ Liste d'attente (${wl.length})</h3>${wl.map(a=>`<div style="display:flex;align-items:center;gap:1rem;padding:.5rem 0;border-bottom:1px dashed #ffe082;font-size:.85rem;flex-wrap:wrap"><span style="background:var(--orange);color:white;padding:.2rem .5rem;border-radius:4px;font-weight:700;font-size:.8rem">${a.slot.slice(0,5)}</span><span style="font-weight:600">${a.driver_name}</span><span style="color:var(--sub)">${a.company_name}</span><span style="font-family:monospace">${a.truck_plate}</span><span style="color:var(--orange);font-weight:600;margin-left:auto">${a.load_type} · ${a.tonnage}T</span></div>`).join('')}</div>`:''}`;
+}
+
+function toggleCheck(el){
+  const on=el.style.background==='rgb(26, 58, 42)';
+  el.style.background=on?'':'#1a3a2a';
+  el.style.borderColor=on?'var(--green)':'#1a3a2a';
+  el.innerHTML=on?'':'<svg width="13" height="10" viewBox="0 0 13 10" fill="none"><path d="M1 5L5 9L12 1" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>';
+}
+
+function showInc(apptId,userId){
+  const row=document.getElementById('inc-row-'+apptId);
+  if(!row)return;
+  if(row.style.display!=='none'){row.style.display='none';return;}
+  row.style.display='';
+  const did='si-'+apptId.replace(/[^a-z0-9]/gi,'');
+  row.querySelector('td').innerHTML=`
+    <div class="card card--y" style="margin:.3rem 0">
+      <h4 style="color:var(--orange);margin-bottom:.7rem">⚠️ Signaler un incident</h4>
+      <div class="fg">
+        <div class="field"><label class="lbl">Type</label>
+          <select class="sel" id="it-${did}" onchange="updPen2('${did}')">
+            <option value="no_show">🚫 Non-présentation (2 pts)</option>
+            <option value="late">⏰ Retard</option>
+            <option value="partial_load">📦 Chargement incomplet (0.5 pt)</option>
+            <option value="other">📝 Autre</option>
+          </select>
+        </div>
+        <div class="field" id="lm2-${did}" style="display:none"><label class="lbl">Retard (min)</label><input class="inp" type="number" id="ilm2-${did}" value="0" onchange="updPen2('${did}')"/></div>
+        <div class="field"><label class="lbl">Points</label><input class="inp" type="number" id="ip2-${did}" value="2" step="0.5"/></div>
+        <div class="field"><label class="lbl">Note</label><input class="inp" id="in2-${did}" placeholder="Détails…"/></div>
+      </div>
+      <div class="flex gap-sm mt">
+        <button class="btn btn--p btn--sm" onclick="submitInc2('${apptId}','${userId}','${did}')">✅ Enregistrer</button>
+        <button class="btn btn--o btn--sm" onclick="document.getElementById('inc-row-${apptId}').style.display='none'">Annuler</button>
+      </div>
+    </div>`;
+}
+function updPen2(did){
+  const type=document.getElementById('it-'+did)?.value;
+  const late=parseInt(document.getElementById('ilm2-'+did)?.value||'0');
+  const lw=document.getElementById('lm2-'+did);
+  const pe=document.getElementById('ip2-'+did);
+  if(lw)lw.style.display=type==='late'?'':'none';
+  if(pe)pe.value=type==='no_show'?2:type==='late'?(late>=60?1:0.5):type==='partial_load'?0.5:0;
+}
+async function submitInc2(apptId,userId,did){
+  const type=document.getElementById('it-'+did)?.value;
+  const late=parseInt(document.getElementById('ilm2-'+did)?.value||'0');
+  const pen=parseFloat(document.getElementById('ip2-'+did)?.value||'0');
+  const note=document.getElementById('in2-'+did)?.value.trim();
+  try{
+    await RDV.addIncident(apptId,userId,type,late,note,pen,_u.id);
+    const user=_users.find(u=>u.id===userId);
+    const score=await RDV.getUserScore(userId);
+    if(user)await Email.penalty(user,{appointment_id:apptId,type,penalty:pen,note,total_penalty:score?.total_penalty||pen});
+    document.getElementById('inc-row-'+apptId).style.display='none';
+    alert('✅ Incident enregistré !');
+  }catch(e){alert('Erreur : '+e.message);}
+}
+
+function exportPDF(){
+  const da=_appts.filter(a=>a.date===_pd&&a.status==='confirmed').sort((a,b)=>a.slot.localeCompare(b.slot));
+  const tonn=da.reduce((s,a)=>s+parseFloat(a.tonnage||0),0);
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Planning ${fmtDate(_pd)}</title>
+  <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:11px;padding:10mm 12mm}
+  .hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1a3a2a;padding-bottom:3mm;margin-bottom:4mm}
+  .hdr h1{font-family:Georgia,serif;font-size:14pt;color:#1a3a2a}.hdr p{font-size:7.5pt;color:#5a5a46}
+  .stats{display:flex;gap:5mm;margin-bottom:4mm;padding:2mm 0;border-bottom:1px solid #e0ddd5}
+  .stat-v{font-size:13pt;font-weight:800;color:#1a3a2a}.stat-l{font-size:7pt;color:#9a9a80}
+  table{width:100%;border-collapse:collapse}thead tr{background:#1a3a2a}
+  th{color:white;padding:2mm 2.5mm;text-align:left;font-size:7.5pt;text-transform:uppercase}
+  td{padding:2.5mm 2.5mm;border-bottom:1px solid #f0ede8;font-size:9pt;vertical-align:middle}
+  tr:nth-child(even) td{background:#faf8f4}
+  .chip{background:#1a3a2a;color:white;padding:.8mm 2mm;border-radius:3px;font-weight:700;font-size:8pt}
+  .plate{font-family:monospace;font-weight:700}.cb{width:4mm;height:4mm;border:1.5px solid #1a3a2a;border-radius:1px;display:inline-block}
+  .footer{margin-top:4mm;padding-top:2mm;border-top:1.5px solid #1a3a2a;display:flex;justify-content:space-between;font-size:7pt;color:#9a9a80}
+  .print-btn{position:fixed;top:8px;right:8px;background:#1a3a2a;color:white;border:none;padding:6px 16px;border-radius:5px;cursor:pointer;font-size:11pt}
+  @media print{.print-btn{display:none}}</style></head><body>
+  <button class="print-btn" onclick="window.print()">🖨 Imprimer</button>
+  <div class="hdr"><div><h1>SOJALIM · Planning chargements</h1><p>193 Impasse Lautrec · 65500 Vic-en-Bigorre · 05 62 96 00 00</p></div>
+  <div style="text-align:right"><div style="background:#1a3a2a;color:white;padding:2mm 4mm;border-radius:4px;font-weight:700;font-size:10pt;display:inline-block">${fmtDate(_pd)}</div>
+  <p style="margin-top:1mm;font-size:7.5pt;color:#5a5a46">Édité le ${new Date().toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</p></div></div>
+  <div class="stats">
+    <div><div class="stat-v">${da.length}</div><div class="stat-l">RDV confirmés</div></div><span style="color:#e0ddd5;font-size:14pt">·</span>
+    <div><div class="stat-v">${tonn.toFixed(0)}T</div><div class="stat-l">Tonnage</div></div><span style="color:#e0ddd5;font-size:14pt">·</span>
+    <div><div class="stat-v">${new Set(da.map(a=>a.company_name)).size}</div><div class="stat-l">Transporteurs</div></div>
+  </div>
+  <table><thead><tr><th>Créneau</th><th>Chauffeur</th><th>Téléphone</th><th>Plaque</th><th>Société</th><th>Chargement</th><th>Tonnage</th><th>Bon de cmd</th><th>Notes</th><th style="text-align:center">✓</th></tr></thead>
+  <tbody>${da.map(a=>`<tr><td><span class="chip">${a.slot.slice(0,5)}</span></td><td style="font-weight:700">${a.driver_name}</td><td style="font-size:8.5pt">${a.driver_phone||'—'}</td><td><span class="plate">${a.truck_plate}</span></td><td style="font-size:8pt">${a.company_name||'—'}</td><td style="font-size:8pt">${a.load_type}</td><td style="text-align:center;font-weight:700;color:#2d6a4f">${a.tonnage}T</td><td style="font-size:8pt;color:#9a9a80">${a.order_number}</td><td style="font-size:8pt;color:#5a5a46;font-style:italic">${a.notes||''}</td><td style="text-align:center"><div class="cb"></div></td></tr>`).join('')}</tbody></table>
+  <div class="footer"><div>Sojalim — Sanders Euralis · Confidentiel</div><div>SOJALIM · Sanders Euralis</div></div>
+  </body></html>`);w.document.close();
+}
+
+// ── STATISTIQUES ──────────────────────────────────────
+function rStats(){
+  const c=document.getElementById('staff-content');
+  if(!_perms.stats_view){c.innerHTML='<div class="card tc" style="padding:3rem"><p class="muted">Accès non autorisé</p></div>';return;}
+  const conf=_appts.filter(a=>a.status==='confirmed');
+  const tonn=conf.reduce((s,a)=>s+parseFloat(a.tonnage||0),0);
+  const byT={};['Tourteau de soja','Huile de soja brute','Coques de soja','Soja en graines'].forEach(lt=>{byT[lt]=conf.filter(a=>a.load_type===lt).length;});
+  const maxT=Math.max(...Object.values(byT),1);
+  c.innerHTML=`
+    <h2>📊 Statistiques</h2>
+    <div class="g4 mb">
+      ${[['📋','RDV total',conf.length,'var(--mid)'],['⚖️','Tonnage total',tonn.toFixed(0)+'T','var(--gold)'],['🚛','Transporteurs',_scores.length,'var(--blue)'],['⚠️','Incidents',_scores.reduce((s,x)=>s+parseInt(x.total_incidents||0),0),'var(--red)']].map(([ic,lb,v,ac])=>`<div class="card" style="border-left:4px solid ${ac};padding:1.2rem"><div>${ic}</div><div style="font-size:2rem;font-weight:800;color:${ac}">${v}</div><div style="font-size:.78rem;color:var(--muted)">${lb}</div></div>`).join('')}
+    </div>
+    <div class="g2 mb">
+      <div class="card"><h3 class="mb">📦 Par type de chargement</h3>
+        ${Object.entries(byT).map(([lt,n])=>`<div style="margin-bottom:.75rem"><div class="flex fxb" style="font-size:.83rem;margin-bottom:.25rem"><span style="color:var(--sub)">${lt}</span><strong style="color:var(--mid)">${n}</strong></div><div style="height:8px;background:var(--cream);border-radius:4px"><div style="height:100%;width:${(n/maxT)*100}%;background:var(--mid);border-radius:4px"></div></div></div>`).join('')}
+      </div>
+      <div class="card"><h3 class="mb">🏆 Scores transporteurs</h3>
+        ${_scores.length===0?'<p class="muted">Aucun incident</p>':_scores.slice(0,8).map(s=>`<div style="display:flex;align-items:center;gap:.8rem;padding:.5rem 0;border-bottom:1px solid var(--border)"><div style="flex:1"><div style="font-weight:600;font-size:.88rem">${s.first_name} ${s.last_name}</div><div style="font-size:.75rem;color:var(--sub)">${s.company}</div></div><span class="penalty-badge ${s.alert_level}">${s.total_penalty} pt</span></div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ── NOTES ─────────────────────────────────────────────
+let _notesUid=null,_notesUname='';
+async function rNotes(){
+  const c=document.getElementById('staff-content');
+  if(!_perms.notes_view){c.innerHTML='<div class="card tc" style="padding:3rem"><p class="muted">Accès non autorisé</p></div>';return;}
+  const transporters=_users.filter(u=>u.role==='transporter'||u.role==='driver');
+  let notesHtml='';
+  if(_notesUid){
+    const notes=await SB.select('notes',{user_id:`eq.${_notesUid}`,select:'*',order:'pinned.desc,created_at.desc'}).catch(()=>[]);
+    notesHtml=`<div class="card mt">
+      <div class="section-hdr mb"><h3 style="margin:0">📝 ${_notesUname}</h3><button class="btn btn--o btn--sm" onclick="_notesUid=null;rNotes()">← Retour</button></div>
+      <div style="background:var(--g10);border-radius:10px;padding:1rem;margin-bottom:1rem;border:1px solid var(--g20)">
+        <div class="field mb"><textarea class="ta" id="new-note" placeholder="Ajouter une note…" style="min-height:80px"></textarea></div>
+        <div class="flex gap-sm fxc">
+          <label class="flex gap-sm fxc" style="cursor:pointer"><input type="checkbox" id="note-pin" style="width:16px;height:16px"/><span style="font-size:.85rem">📌 Épingler</span></label>
+          <button class="btn btn--p btn--sm" onclick="addNote2('${_notesUid}')">✚ Ajouter</button>
+        </div>
+        <div id="note-al2" style="margin-top:.5rem"></div>
+      </div>
+      ${notes.length===0?'<p class="muted tc" style="padding:1.5rem">Aucune note</p>':notes.map(n=>`<div style="background:${n.pinned?'#fffdf0':'white'};border:1.5px solid ${n.pinned?'#ffe082':'var(--border)'};border-radius:10px;padding:1rem 1.2rem;margin-bottom:.7rem">
+        ${n.pinned?'<div style="text-align:right;margin-bottom:.3rem">📌</div>':''}
+        <p style="color:var(--text);line-height:1.6;font-size:.9rem;margin-bottom:.5rem;white-space:pre-wrap">${n.content}</p>
+        <div class="flex fxb" style="flex-wrap:wrap;gap:.4rem">
+          <div style="font-size:.75rem;color:var(--muted)">${fmtDT(n.created_at)}</div>
+          <button class="btn btn--r btn--sm" onclick="delNote2('${n.id}')">🗑</button>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  }
+  c.innerHTML=`<h2>📝 Notes transporteurs</h2>
+    <div class="card">${transporters.map(u=>`<div class="user-card" style="cursor:pointer" onclick="_notesUid='${u.id}';_notesUname='${u.first_name} ${u.last_name} (${u.company})';rNotes()">
+      <div class="user-card__avatar" style="background:var(--mid)">🚛</div>
+      <div class="user-card__info"><div class="user-card__name">${u.first_name} ${u.last_name}</div><div class="user-card__sub">${u.company}</div></div>
+      <span style="color:var(--mid)">→</span>
+    </div>`).join('')}</div>${notesHtml}`;
+}
+async function addNote2(uid){
+  const content=document.getElementById('new-note')?.value.trim();
+  const pinned=document.getElementById('note-pin')?.checked||false;
+  const al=document.getElementById('note-al2');
+  if(!content){al.innerHTML='<div class="al al--e">Note vide.</div>';return;}
+  try{await SB.insert('notes',{user_id:uid,content,pinned,created_by:_u.id});al.innerHTML='<div class="al al--s">✅ Ajoutée !</div>';setTimeout(()=>rNotes(),800);}
+  catch(e){al.innerHTML=`<div class="al al--e">${e.message}</div>`;}
+}
+async function delNote2(id){if(!confirm('Supprimer ?'))return;await SB.delete('notes',{id:`eq.${id}`});rNotes();}
+
+// ── COMPTES ────────────────────────────────────────────
+function rAccounts(){
+  const c=document.getElementById('staff-content');
+  if(!_perms.accounts_view){c.innerHTML='<div class="card tc" style="padding:3rem"><p class="muted">Accès non autorisé</p></div>';return;}
+  const list=_users.filter(u=>u.role!=='admin');
+  c.innerHTML=`<h2>👥 Comptes</h2>
+    ${list.map(u=>`<div class="user-card">
+      <div class="user-card__avatar" style="background:${u.role==='driver'?'var(--blue)':u.role==='staff'||u.role==='manager'?'var(--gold)':'var(--mid)'}">${u.role==='manager'?'🏭':u.role==='staff'?'👷':'🚛'}</div>
+      <div class="user-card__info"><div class="user-card__name">${u.first_name} ${u.last_name} <span class="badge role-${u.role}">${u.role}</span></div><div class="user-card__sub">${u.email} · ${u.company}</div></div>
+      <span class="badge ${u.status==='active'?'badge--g':u.status==='pending'?'badge--o':'badge--r'}">${u.status==='active'?'✅':u.status==='pending'?'⏳':'🔴'}</span>
+    </div>`).join('')}`;
+}
+
+// ── INVITATIONS ────────────────────────────────────────
+function rInvites(){
+  const c=document.getElementById('staff-content');
+  if(!_perms.invitations_send){c.innerHTML='<div class="card tc" style="padding:3rem"><p class="muted">Accès non autorisé</p></div>';return;}
+  c.innerHTML=`<h2>✉️ Invitations</h2>
+    <div class="card">
+      <h3 class="mb">Inviter un transporteur</h3>
+      <div id="inv-al2"></div>
+      <div class="fg">
+        <div class="field"><label class="lbl">Email *</label><input class="inp" id="inv-em2" type="email"/></div>
+        <div class="field"><label class="lbl">Note</label><input class="inp" id="inv-no2"/></div>
+      </div>
+      <button class="btn btn--p mt" onclick="sendInv2()">✉️ Envoyer</button>
+    </div>`;
+}
+async function sendInv2(){
+  const em=document.getElementById('inv-em2').value.trim();
+  const no=document.getElementById('inv-no2').value.trim();
+  const al=document.getElementById('inv-al2');
+  try{const inv=await Auth.createInvitation(em,'transporter',_u.id,no);await Email.inviteTransporter(em,inv.token,_u,no);al.innerHTML=`<div class="al al--s">✅ Invitation envoyée à ${em}</div>`;}
+  catch(e){al.innerHTML=`<div class="al al--e">${e.message}</div>`;}
+}
+
+// ── INCIDENTS ──────────────────────────────────────────
+function rIncidents(){
+  const c=document.getElementById('staff-content');
+  if(!_perms.incidents_manage){c.innerHTML='<div class="card tc" style="padding:3rem"><p class="muted">Accès non autorisé</p></div>';return;}
+  const typeLabels={no_show:'🚫 Non-présentation',late:'⏰ Retard',partial_load:'📦 Charg. incomplet',other:'📝 Autre'};
+  c.innerHTML=`<h2>⚠️ Incidents</h2>
+    ${_incidents.length===0?'<div class="card tc" style="padding:3rem"><p class="muted">Aucun incident</p></div>':
+    _incidents.slice(0,30).map(inc=>{
+      const user=_users.find(u=>u.id===inc.user_id);
+      return`<div class="card card--b mb" style="padding:1rem 1.2rem"><div class="flex fxb" style="flex-wrap:wrap;gap:.8rem"><div><div class="flex fxc gap-sm mb"><span style="font-size:1.1rem">${inc.type==='no_show'?'🚫':inc.type==='late'?'⏰':'📦'}</span><strong>${typeLabels[inc.type]||inc.type}</strong></div><div style="font-size:.84rem;color:var(--sub)">👤 ${user?user.first_name+' '+user.last_name:'—'} — ${user?.company||'—'}</div>${inc.note?`<div style="font-size:.8rem;color:var(--sub)">📝 ${inc.note}</div>`:''}</div><div style="text-align:right"><span class="penalty-badge ${inc.penalty>=2?'danger':inc.penalty>=1?'warning':'ok'}">${inc.penalty} pt</span><div style="font-size:.72rem;color:var(--muted);margin-top:.3rem">${fmtDT(inc.created_at)}</div></div></div></div>`;
+    }).join('')}`;
+}
+
+// ── FERMETURES ─────────────────────────────────────────
+async function rClosures(){
+  const c=document.getElementById('staff-content');
+  if(!_perms.closures_manage){c.innerHTML='<div class="card tc" style="padding:3rem"><p class="muted">Accès non autorisé</p></div>';return;}
+  c.innerHTML=`<h2>🚫 Fermetures</h2>
+    <div class="card mb"><h3 class="mb">Ajouter une fermeture</h3>
+      <div id="cl-al2"></div>
+      <div style="display:grid;grid-template-columns:1fr 2fr auto;gap:.8rem;align-items:end">
+        <div class="field"><label class="lbl">Date</label><input class="inp" type="date" id="cl-d2" min="${todayStr()}"/></div>
+        <div class="field"><label class="lbl">Motif</label><input class="inp" id="cl-r2" placeholder="Maintenance…"/></div>
+        <button class="btn btn--p" onclick="addCl2()">Ajouter</button>
+      </div>
+    </div>
+    <div class="card"><h3 class="mb">Fermetures programmées (${_cl.length})</h3>
+      ${_cl.length===0?'<p class="muted tc" style="padding:1.5rem">Aucune</p>':
+      _cl.map(cl=>`<div style="display:flex;align-items:center;gap:.8rem;padding:.65rem .85rem;background:var(--redbg);border-radius:8px;border:1px solid var(--redbrd);margin-bottom:.4rem"><strong style="color:var(--red);flex-shrink:0">${fmtDate(cl.date)}</strong><span style="flex:1;color:var(--sub)">${cl.reason}</span><button class="btn btn--r btn--sm" onclick="delCl2('${cl.id}')">🗑</button></div>`).join('')}
+    </div>`;
+}
+async function addCl2(){const d=document.getElementById('cl-d2').value,r=document.getElementById('cl-r2').value.trim(),al=document.getElementById('cl-al2');if(!d||!r){al.innerHTML='<div class="al al--e">Date et motif requis.</div>';return;}try{const row=await SB.insert('closures',{date:d,reason:r,created_by:_u.id});_cl.push(Array.isArray(row)?row[0]:row);rClosures();}catch(e){al.innerHTML=`<div class="al al--e">${e.message}</div>`;}}
+async function delCl2(id){if(!confirm('Supprimer ?'))return;await SB.delete('closures',{id:`eq.${id}`});_cl=_cl.filter(c=>c.id!==id);rClosures();}
+
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
