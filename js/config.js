@@ -18,16 +18,12 @@ const SB = {
     };
   },
   async _req(method, path, body, qs = {}) {
-    const url = new URL(SUPABASE_URL + '/rest/v1/' + path);
-    Object.entries(qs).forEach(([k, v]) => url.searchParams.set(k, v));
-    // Fix : Supabase n'accepte pas l'encodage de certains caractères
-    const urlStr = url.toString()
-      .replace(/%2C/g, ',')
-      .replace(/%2E/g, '.')
-      .replace(/%3A/g, ':');
+    let url = SUPABASE_URL + '/rest/v1/' + path;
+    const params = Object.entries(qs).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+    if (params) url += '?' + params;
     const opts = { method, headers: this._headers() };
     if (body && ['POST','PATCH','PUT'].includes(method)) opts.body = JSON.stringify(body);
-    const res  = await fetch(urlStr, opts);
+    const res  = await fetch(url, opts);
     const text = await res.text();
     const data = text ? JSON.parse(text) : [];
     if (!res.ok) {
