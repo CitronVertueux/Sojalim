@@ -1,4 +1,5 @@
 /* SOJALIM RDV — Styles v3 */
+html,body{direction:ltr!important}
 :root{
   --green:#1a3a2a;--mid:#2d6a4f;--light:#52b788;--g10:#eef7f2;--g20:#d4edda;
   --gold:#c9a84c;--goldL:#e8c96e;--cream:#f5f0e8;--bg:#f0f2f5;
@@ -45,7 +46,7 @@ a{color:var(--mid);text-decoration:none}a:hover{text-decoration:underline}
 /* Forms */
 .field{display:flex;flex-direction:column;gap:.3rem}
 .lbl{font-size:.75rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.07em}
-.inp,.sel,.ta{width:100%;padding:.72rem 1rem;border:1.5px solid var(--border);border-radius:8px;font-size:.93rem;color:var(--text);outline:none;background:white;font-family:inherit;transition:border-color .15s}
+.inp,.sel,.ta{width:100%;padding:.72rem 1rem;border:1.5px solid var(--border);border-radius:8px;font-size:.93rem;color:var(--text);outline:none;background:white;font-family:inherit;transition:border-color .15s;direction:ltr;text-align:left}
 .inp:focus,.sel:focus,.ta:focus{border-color:var(--mid);box-shadow:0 0 0 3px rgba(45,106,79,.1)}
 .ta{resize:vertical;min-height:70px}
 .fg{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
