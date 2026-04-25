@@ -172,7 +172,7 @@ function rPlan(){
           <h3 style="margin:0">Rendez-vous (${filt.length})</h3>
           <div class="flex gap-sm" style="flex-wrap:wrap">${[['all','Tous'],['confirmed','✅'],['waitlist','⏳'],['cancelled','❌']].map(([v,l])=>`<button class="btn btn--pill btn--o ${_pf===v?'on':''}" onclick="_pf='${v}';rPlan()">${l}</button>`).join('')}</div>
         </div>
-        <div class="srch mb"><span class="srch-ico">🔍</span><input class="inp srch-inp" value="${_ps}" placeholder="Chauffeur, plaque, BC, référence…" oninput="_ps=this.value;rPlan()"/></div>
+        <div class="srch mb"><span class="srch-ico">🔍</span><input class="inp srch-inp" dir="ltr" value="${_ps}" placeholder="Chauffeur, plaque, BC, référence…" oninput="_ps=this.value;rPlan()"/></div>
         ${filt.length===0?'<p class="muted tc" style="padding:1.5rem">Aucun rendez-vous</p>':filt.map(a=>aRow(a)).join('')}
       </div>
     </div>`;
