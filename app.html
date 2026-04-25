@@ -579,8 +579,6 @@ function showToast(msg){
 }
 
 // ══ PWA INSTALL ══
-let _pwaPrompt=null;
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();_pwaPrompt=e;});
 function installPWAApp(){
   if(_pwaPrompt){_pwaPrompt.prompt();_pwaPrompt.userChoice.then(r=>{if(r.outcome==='accepted')showToast('✅ App installée !');});}
   else showToast('Utilisez le menu du navigateur pour installer');
