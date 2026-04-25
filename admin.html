@@ -580,98 +580,165 @@ function exportPlanningPDF(date){
   <title>Planning Sojalim — ${fmtDate(date)}</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Segoe UI',Arial,sans-serif;color:#1a1a14;font-size:12px}
-    .page{max-width:210mm;margin:0 auto;padding:12mm 15mm}
-    .header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:8mm;border-bottom:3px solid #1a3a2a;margin-bottom:6mm}
-    .header-left h1{font-family:Georgia,serif;font-size:20pt;color:#1a3a2a;line-height:1.2}
-    .header-left h1 span{color:#c9a84c;font-size:13pt;display:block}
-    .header-left p{color:#5a5a46;font-size:9pt;margin-top:2mm}
+    body{font-family:Arial,sans-serif;color:#1a1a14;font-size:11px;padding:10mm 12mm}
+    /* En-tête */
+    .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:5mm;padding-bottom:3mm;border-bottom:2px solid #1a3a2a}
+    .header-left h1{font-family:Georgia,serif;font-size:16pt;color:#1a3a2a}
+    .header-left p{color:#5a5a46;font-size:8pt;margin-top:1mm}
     .header-right{text-align:right}
-    .date-badge{background:#1a3a2a;color:white;padding:3mm 5mm;border-radius:6px;font-size:10pt;font-weight:700;display:inline-block;margin-bottom:2mm}
-    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin-bottom:6mm}
-    .stat{border:1.5px solid #e0ddd5;border-radius:6px;padding:3mm 4mm;text-align:center}
-    .stat-val{font-size:16pt;font-weight:800;line-height:1;font-family:Georgia,serif}
-    .stat-lbl{font-size:7.5pt;color:#9a9a80;margin-top:1mm}
-    .stat-ok{border-color:#d4edda;background:#eef7f2}.stat-ok .stat-val{color:#2d6a4f}
-    .stat-gold{border-color:#ffe082;background:#fffdf0}.stat-gold .stat-val{color:#c9a84c}
-    .section-title{font-family:Georgia,serif;font-size:11pt;color:#1a3a2a;margin-bottom:3mm;padding-bottom:1.5mm;border-bottom:1px solid #e0ddd5}
-    table{width:100%;border-collapse:collapse;margin-bottom:6mm}
-    th{background:#1a3a2a;color:white;padding:2.5mm 3mm;text-align:left;font-size:8pt;font-weight:700;text-transform:uppercase}
-    td{padding:2.5mm 3mm;border-bottom:1px solid #f0ede8;font-size:9pt;vertical-align:middle}
+    .date-box{background:#1a3a2a;color:white;padding:2mm 4mm;border-radius:4px;font-size:11pt;font-weight:700;display:inline-block}
+    .date-sub{color:#9a9a80;font-size:7.5pt;margin-top:1mm}
+    /* Stats inline */
+    .stats{display:flex;gap:6mm;margin-bottom:4mm;padding:2mm 0;border-bottom:1px solid #e0ddd5}
+    .stat{display:flex;align-items:center;gap:1.5mm}
+    .stat-val{font-size:13pt;font-weight:800;color:#1a3a2a;font-family:Georgia,serif}
+    .stat-lbl{font-size:7.5pt;color:#9a9a80;line-height:1.3}
+    .sep{color:#e0ddd5;font-size:14pt}
+    /* Tableau */
+    table{width:100%;border-collapse:collapse;margin-bottom:5mm}
+    thead tr{background:#1a3a2a}
+    th{color:white;padding:2.5mm 2mm;text-align:left;font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+    th.tc{text-align:center}
+    td{padding:2.5mm 2mm;border-bottom:1px solid #f0ede8;font-size:9pt;vertical-align:middle}
     tr:nth-child(even) td{background:#faf8f4}
-    .slot-chip{background:#1a3a2a;color:white;padding:1mm 2.5mm;border-radius:4px;font-weight:700;font-size:8.5pt;display:inline-block}
+    tr:hover td{background:#eef7f2}
+    /* Cellules spéciales */
+    .slot-chip{background:#1a3a2a;color:white;padding:.8mm 2mm;border-radius:3px;font-weight:700;font-size:8pt;display:inline-block;white-space:nowrap}
     .slot-chip.wl{background:#e67e22}
-    .badge-load{background:#eef7f2;color:#2d6a4f;padding:.5mm 2mm;border-radius:3px;font-size:7.5pt;font-weight:600}
-    .plate{font-family:monospace;font-weight:700;font-size:9.5pt;color:#1a3a2a}
-    .wl-section{background:#fff8e6;border:1px solid #ffe082;border-radius:6px;padding:3mm 4mm;margin-bottom:6mm}
-    .wl-title{color:#e67e22;font-weight:700;font-size:9pt;margin-bottom:2mm}
-    .wl-item{display:flex;gap:3mm;align-items:center;padding:1.5mm 0;border-bottom:1px solid #ffe082}
-    .wl-item:last-child{border-bottom:none}
-    .footer{border-top:2px solid #1a3a2a;padding-top:4mm;display:flex;justify-content:space-between;margin-top:4mm}
-    .footer-left{color:#9a9a80;font-size:7.5pt;line-height:1.6}
-    .footer-logo{font-family:Georgia,serif;font-size:10pt;color:#1a3a2a;font-weight:700}
-    .footer-logo span{color:#c9a84c}
-    .sig-box{border:1px dashed #9a9a80;border-radius:6px;padding:3mm;margin-top:4mm;display:flex;gap:8mm}
-    .sig-field{flex:1;text-align:center}
-    .sig-label{font-size:7.5pt;color:#9a9a80;margin-bottom:6mm}
-    .sig-line{border-bottom:1px solid #9a9a80;margin-bottom:1.5mm}
-    .sig-name{font-size:7pt;color:#9a9a80}
-    @media print{.no-print{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-  </style></head><body><div class="page">
-    <div class="no-print" style="text-align:right;margin-bottom:5mm">
-      <button onclick="window.print()" style="background:#1a3a2a;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:11pt;cursor:pointer;font-weight:700">🖨 Imprimer / Enregistrer en PDF</button>
+    .plate{font-family:monospace;font-weight:700;font-size:9pt;letter-spacing:.05em}
+    .load-badge{background:#eef7f2;color:#2d6a4f;padding:.3mm 1.5mm;border-radius:3px;font-size:7.5pt;font-weight:600}
+    .load-badge.h{background:#fff8dc;color:#a07800}
+    .load-badge.c{background:#e8f4ff;color:#2980b9}
+    .load-badge.g{background:#fff3e0;color:#e67e22}
+    /* Checkbox */
+    .cb-cell{text-align:center;width:8mm}
+    .cb{width:4.5mm;height:4.5mm;border:1.5px solid #1a3a2a;border-radius:1px;display:inline-block;cursor:pointer}
+    /* Waitlist */
+    .wl-section{background:#fff8e6;border:1px solid #ffe082;border-radius:4px;padding:2mm 3mm;margin-bottom:4mm}
+    .wl-title{color:#e67e22;font-weight:700;font-size:8.5pt;margin-bottom:1.5mm}
+    .wl-row{display:flex;align-items:center;gap:3mm;padding:1mm 0;border-bottom:1px dashed #ffe082;font-size:8.5pt}
+    .wl-row:last-child{border-bottom:none}
+    /* Zone signature */
+    .sig-area{display:grid;grid-template-columns:1fr 1fr 2fr;gap:5mm;margin-top:3mm;padding-top:3mm;border-top:1px solid #e0ddd5}
+    .sig-box{border:1px dashed #9a9a80;border-radius:4px;padding:2mm;text-align:center}
+    .sig-label{font-size:7pt;color:#9a9a80;margin-bottom:5mm}
+    .sig-line{border-bottom:1px solid #9a9a80;margin-bottom:1mm}
+    .sig-name{font-size:6.5pt;color:#9a9a80}
+    .obs-box{border:1px dashed #9a9a80;border-radius:4px;padding:2mm}
+    .obs-label{font-size:7pt;color:#9a9a80;margin-bottom:3mm}
+    /* Footer */
+    .footer{margin-top:4mm;padding-top:2mm;border-top:1.5px solid #1a3a2a;display:flex;justify-content:space-between;align-items:center}
+    .footer-left{color:#9a9a80;font-size:7pt;line-height:1.6}
+    .footer-right{font-family:Georgia,serif;font-size:9pt;color:#1a3a2a;font-weight:700;text-align:right}
+    .footer-right span{color:#c9a84c}
+    /* Bouton imprimer */
+    .print-btn{position:fixed;top:10px;right:10px;background:#1a3a2a;color:white;border:none;padding:8px 18px;border-radius:6px;font-size:12pt;cursor:pointer;font-weight:700;z-index:999}
+    @media print{.print-btn{display:none}body{padding:8mm 10mm}}
+  </style>
+  </head><body>
+  <button class="print-btn" onclick="window.print()">🖨 Imprimer</button>
+
+  <!-- En-tête -->
+  <div class="header">
+    <div class="header-left">
+      <h1>SOJALIM · Planning chargements</h1>
+      <p>193 Impasse Lautrec · 65500 Vic-en-Bigorre · 05 62 96 00 00 · Sanders Euralis SAS</p>
     </div>
-    <div class="header">
-      <div class="header-left">
-        <h1>Sojalim<span>Sanders Euralis</span></h1>
-        <p>193 Impasse Lautrec · 65500 Vic-en-Bigorre · 05 62 96 00 00</p>
-        <p style="color:#9a9a80;font-size:8pt">SIRET 820 327 658 RCS Tarbes · Sanders Euralis SAS</p>
-      </div>
-      <div class="header-right">
-        <div class="date-badge">${fmtDate(date)}</div>
-        <p style="font-size:8.5pt;color:#5a5a46">Planning chargements</p>
-        <p style="font-size:7.5pt;color:#9a9a80;margin-top:1mm">Édité le ${new Date().toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
-      </div>
+    <div class="header-right">
+      <div class="date-box">${fmtDate(date)}</div>
+      <div class="date-sub">Édité le ${new Date().toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
     </div>
-    <div class="stats">
-      <div class="stat stat-ok"><div class="stat-val">${conf.length}</div><div class="stat-lbl">RDV confirmés</div></div>
-      <div class="stat stat-gold"><div class="stat-val">${tonn.toFixed(0)}T</div><div class="stat-lbl">Tonnage total</div></div>
-      <div class="stat"><div class="stat-val" style="color:#2980b9">${new Set(conf.map(a=>a.company_name)).size}</div><div class="stat-lbl">Transporteurs</div></div>
-      <div class="stat" style="${wl.length>0?'border-color:#fcc;background:#fff5f5':'border-color:#d4edda;background:#eef7f2'}"><div class="stat-val" style="color:${wl.length>0?'#e74c3c':'#2d6a4f'}">${wl.length}</div><div class="stat-lbl">Liste d'attente</div></div>
-    </div>
-    <div class="section-title">📋 Rendez-vous confirmés (${conf.length})</div>
-    ${conf.length===0?'<p style="color:#9a9a80;text-align:center;padding:8mm">Aucun rendez-vous confirmé</p>':`
-    <table>
-      <thead><tr>
-        <th style="width:14mm">Créneau</th><th style="width:22mm">Chauffeur</th>
-        <th style="width:20mm">Téléphone</th><th style="width:18mm">Immatriculation</th>
-        <th style="width:26mm">Société</th><th style="width:28mm">Chargement</th>
-        <th style="width:11mm">Tonnage</th><th style="width:22mm">Bon de cmd</th><th>Notes</th>
-      </tr></thead>
-      <tbody>${conf.map(a=>`<tr>
-        <td><span class="slot-chip">${a.slot.slice(0,5)}</span><br><span style="font-size:7pt;color:#9a9a80">→ ${addMins(a.slot.slice(0,5),30)}</span></td>
-        <td style="font-weight:700">${a.driver_name}</td>
-        <td style="font-size:8.5pt">${a.driver_phone||'—'}</td>
-        <td><span class="plate">${a.truck_plate}</span></td>
-        <td style="font-size:8.5pt">${a.company_name||'—'}</td>
-        <td><span class="badge-load">${a.load_type}</span></td>
-        <td style="font-weight:700;color:#2d6a4f;text-align:center">${a.tonnage}T</td>
-        <td style="font-size:8pt;color:#9a9a80">${a.order_number}</td>
-        <td style="font-size:8pt;color:#5a5a46;font-style:italic">${a.notes||'—'}</td>
-      </tr>`).join('')}</tbody>
-    </table>`}
-    ${wl.length>0?`<div class="wl-section"><div class="wl-title">⏳ Liste d'attente (${wl.length} RDV)</div>
-    ${wl.map(a=>`<div class="wl-item"><span class="slot-chip wl">${a.slot.slice(0,5)}</span><span style="font-weight:700;width:35mm">${a.driver_name}</span><span style="color:#5a5a46;width:28mm">${a.company_name||'—'}</span><span class="plate">${a.truck_plate}</span><span style="color:#e67e22;font-weight:600;margin-left:auto">${a.load_type} · ${a.tonnage}T</span></div>`).join('')}</div>`:''}
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat"><div class="stat-val">${conf.length}</div><div class="stat-lbl">RDV<br>confirmés</div></div>
+    <div class="sep">·</div>
+    <div class="stat"><div class="stat-val">${tonn.toFixed(0)}T</div><div class="stat-lbl">Tonnage<br>total</div></div>
+    <div class="sep">·</div>
+    <div class="stat"><div class="stat-val">${new Set(conf.map(a=>a.company_name)).size}</div><div class="stat-lbl">Trans-<br>porteurs</div></div>
+    <div class="sep">·</div>
+    <div class="stat"><div class="stat-val" style="color:${wl.length>0?'#e67e22':'#27ae60'}">${wl.length}</div><div class="stat-lbl">Liste<br>d'attente</div></div>
+    <div class="sep">·</div>
+    <div class="stat" style="margin-left:auto"><div style="font-size:8pt;color:#9a9a80">Capacité : <strong style="color:#1a3a2a">${conf.length}/${_sett.maxTrucks||20}</strong></div></div>
+  </div>
+
+  <!-- Tableau principal -->
+  ${conf.length===0?'<p style="text-align:center;padding:10mm;color:#9a9a80">Aucun rendez-vous confirmé</p>':`
+  <table>
+    <thead><tr>
+      <th style="width:16mm">Créneau</th>
+      <th style="width:24mm">Chauffeur</th>
+      <th style="width:20mm">Téléphone</th>
+      <th style="width:20mm">Immatriculation</th>
+      <th style="width:28mm">Société</th>
+      <th style="width:26mm">Chargement</th>
+      <th style="width:12mm" class="tc">Tonnage</th>
+      <th style="width:24mm">Bon de cmd</th>
+      <th>Notes</th>
+      <th class="tc cb-cell">✓</th>
+    </tr></thead>
+    <tbody>
+      ${conf.map(a=>{
+        const loadClass=a.load_type.includes('Huile')?'h':a.load_type.includes('Coques')?'c':a.load_type.includes('Graines')?'g':'';
+        return`<tr>
+          <td><span class="slot-chip">${a.slot.slice(0,5)}</span><br><span style="font-size:7pt;color:#9a9a80">→${addMins(a.slot.slice(0,5),30)}</span></td>
+          <td style="font-weight:700">${a.driver_name}</td>
+          <td style="font-size:8.5pt">${a.driver_phone||'—'}</td>
+          <td><span class="plate">${a.truck_plate}</span></td>
+          <td style="font-size:8pt">${a.company_name||'—'}</td>
+          <td><span class="load-badge ${loadClass}">${a.load_type}</span></td>
+          <td style="text-align:center;font-weight:700;color:#2d6a4f">${a.tonnage}T</td>
+          <td style="font-size:8pt;color:#9a9a80">${a.order_number}</td>
+          <td style="font-size:8pt;color:#5a5a46;font-style:italic">${a.notes||''}</td>
+          <td class="cb-cell"><div class="cb" onclick="this.style.background=this.style.background?'':'#1a3a2a'"></div></td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>`}
+
+  <!-- Liste d'attente -->
+  ${wl.length>0?`
+  <div class="wl-section">
+    <div class="wl-title">⏳ Liste d'attente — ${wl.length} RDV en attente de place</div>
+    ${wl.map(a=>`<div class="wl-row">
+      <span class="slot-chip wl">${a.slot.slice(0,5)}</span>
+      <strong style="width:35mm">${a.driver_name}</strong>
+      <span style="width:30mm;color:#5a5a46">${a.company_name||'—'}</span>
+      <span class="plate">${a.truck_plate}</span>
+      <span style="margin-left:auto;color:#e67e22;font-weight:600">${a.load_type} · ${a.tonnage}T</span>
+      <div class="cb" style="margin-left:3mm;border-color:#e67e22" onclick="this.style.background=this.style.background?'':'#e67e22'"></div>
+    </div>`).join('')}
+  </div>`:''}
+
+  <!-- Zone signature -->
+  <div class="sig-area">
     <div class="sig-box">
-      <div class="sig-field"><div class="sig-label">Responsable Sojalim</div><div class="sig-line"></div><div class="sig-name">Signature et tampon</div></div>
-      <div class="sig-field"><div class="sig-label">Visa sécurité site</div><div class="sig-line"></div><div class="sig-name">Signature</div></div>
-      <div class="sig-field"><div class="sig-label">Observations</div><div style="border-bottom:1px solid #9a9a80;min-height:12mm"></div></div>
+      <div class="sig-label">Responsable Sojalim</div>
+      <div class="sig-line"></div>
+      <div class="sig-name">Signature + tampon</div>
     </div>
-    <div class="footer">
-      <div class="footer-left"><div>Sojalim — 193 Impasse Lautrec, 65500 Vic-en-Bigorre · 05 62 96 00 00</div><div>Document généré le ${new Date().toLocaleString('fr-FR')} · Usage interne confidentiel</div></div>
-      <div class="footer-right"><div class="footer-logo">SOJALIM<span> · Sanders Euralis</span></div><div style="font-size:7.5pt;color:#9a9a80">Seule unité de trituration de soja en Occitanie</div></div>
+    <div class="sig-box">
+      <div class="sig-label">Visa sécurité site</div>
+      <div class="sig-line"></div>
+      <div class="sig-name">Signature</div>
     </div>
-  </div></body></html>`);
+    <div class="obs-box">
+      <div class="obs-label">Observations / Incidents du jour</div>
+      <div style="min-height:12mm"></div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-left">
+      Sojalim — Sanders Euralis · 193 Impasse Lautrec, 65500 Vic-en-Bigorre · 05 62 96 00 00<br>
+      Document généré le ${new Date().toLocaleString('fr-FR')} · Usage interne confidentiel
+    </div>
+    <div class="footer-right">SOJALIM<span> · Sanders Euralis</span><br><span style="font-size:7pt;color:#9a9a80;font-family:Arial">Seule unité de trituration de soja en Occitanie</span></div>
+  </div>
+
+  </body></html>`);
   w.document.close();
   setTimeout(()=>w.focus(),300);
 }
