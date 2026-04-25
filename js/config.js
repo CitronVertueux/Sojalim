@@ -1,10 +1,10 @@
 // ═══════════════════════════════════════════════════
 // js/config.js — Remplacer les 5 valeurs ci-dessous
 // ═══════════════════════════════════════════════════
-const SUPABASE_URL      = 'https://btdrbvbchccqjzwyhcfg.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0ZHJidmJjaGNjcWp6d3loY2ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MzQ1OTcsImV4cCI6MjA5MjUxMDU5N30.FGEwM0hz7kevHw3MM-ZQZtTLeHda4XPxvsYrr2cUcb8';
-const RESEND_API_KEY    = 're_Ns2Be95p_6tQTq2zWHLj71CSy11NHTjvb';
-const APP_URL           = 'https://citronvertueux.github.io/Sojalim';
+const SUPABASE_URL      = 'https://VOTRE_PROJET.supabase.co';
+const SUPABASE_ANON_KEY = 'votre_cle_anon_publique';
+const RESEND_API_KEY    = 'votre_cle_resend';
+const APP_URL           = 'https://VOTRE_USER.github.io/Sojalim';
 const MAIL_FROM         = 'onboarding@resend.dev';
 
 // ── CLIENT SUPABASE ──────────────────────────────────
@@ -20,9 +20,14 @@ const SB = {
   async _req(method, path, body, qs = {}) {
     const url = new URL(SUPABASE_URL + '/rest/v1/' + path);
     Object.entries(qs).forEach(([k, v]) => url.searchParams.set(k, v));
+    // Fix : Supabase n'accepte pas l'encodage de certains caractères
+    const urlStr = url.toString()
+      .replace(/%2C/g, ',')
+      .replace(/%2E/g, '.')
+      .replace(/%3A/g, ':');
     const opts = { method, headers: this._headers() };
     if (body && ['POST','PATCH','PUT'].includes(method)) opts.body = JSON.stringify(body);
-    const res  = await fetch(url.toString(), opts);
+    const res  = await fetch(urlStr, opts);
     const text = await res.text();
     const data = text ? JSON.parse(text) : [];
     if (!res.ok) {
