@@ -17,7 +17,7 @@ const Auth = {
     const u = rows[0];
     if (u.status==='disabled') throw new Error('Compte désactivé. Contactez l\'administrateur.');
     if (u.status==='pending')  throw new Error('Compte en attente d\'activation par l\'équipe Sojalim.');
-    const ok = await SB.rpc('check_password', { input_password: password, hashed_password: u.password_hash });
+    const ok = await SB.rpc('check_password', { hashed_password: u.password_hash, input_password: password });
     if (String(ok) !== 'true') throw new Error('Email ou mot de passe incorrect.');
     await SB.update('users', {id:`eq.${u.id}`}, {last_login: new Date().toISOString()}).catch(()=>{});
     SB.insert('login_logs', {
