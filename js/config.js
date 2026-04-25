@@ -1,10 +1,10 @@
 // ═══════════════════════════════════════════════════
 // js/config.js — Remplacer les 5 valeurs ci-dessous
 // ═══════════════════════════════════════════════════
-const SUPABASE_URL      = 'https://VOTRE_PROJET.supabase.co';
-const SUPABASE_ANON_KEY = 'votre_cle_anon_publique';
-const RESEND_API_KEY    = 'votre_cle_resend';
-const APP_URL           = 'https://VOTRE_USER.github.io/Sojalim';
+const SUPABASE_URL      = 'https://btdrbvbchccqjzwyhcfg.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
+const RESEND_API_KEY    = 're_Ns2Be95p_6tQTq2zWHLj71CSy11NHTjvb';
+const APP_URL           = 'https://citronvertueux.github.io/Sojalim';
 const MAIL_FROM         = 'onboarding@resend.dev';
 
 // ── CLIENT SUPABASE ──────────────────────────────────
