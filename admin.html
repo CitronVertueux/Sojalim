@@ -9,11 +9,19 @@
 </head>
 <body>
 <div class="layout">
+  <!-- Barre logo blanche en haut -->
+  <div style="position:fixed;top:0;left:0;right:0;height:58px;background:white;border-bottom:1px solid #e0ddd5;display:flex;align-items:center;padding:0 1.5rem;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+    <img src="logo.png" alt="Sojalim" style="height:42px;object-fit:contain"/>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:.5rem">
+      <span id="aname-top" style="font-size:.83rem;color:var(--sub)"></span>
+      <button class="btn btn--sm" style="background:var(--green);color:white;border:none" onclick="Auth.logout()">🔒 Déconnexion</button>
+    </div>
+  </div>
+  <!-- Layout décalé vers le bas -->
+  <div style="margin-top:58px;display:flex;min-height:calc(100vh - 58px)">
   <aside class="sb">
     <div class="sb__brand">
-      <div style="background:white;border-radius:10px;padding:.6rem .8rem;display:inline-block;margin-bottom:.4rem">
-        <img src="logo.png" alt="Sojalim" style="width:160px;object-fit:contain;display:block"/>
-      </div>
+      <div style="color:white;font-family:Georgia,serif;font-size:.9rem;font-weight:700;letter-spacing:.05em">SOJALIM</div>
       <div class="sb__sub" id="aname">Administrateur</div>
     </div>
     <nav class="sb__nav">
@@ -35,7 +43,8 @@
     </div>
   </aside>
   <main class="main"><div class="content" id="ac"><div class="loader"><div class="spinner"></div></div></div></main>
-</div>
+  </div><!-- end layout inner -->
+</div><!-- end layout outer -->
 
 <script src="js/config.js"></script>
 <script src="js/auth.js"></script>
@@ -50,6 +59,8 @@ let _gq='',_gt='all',_uf='all',_us='';
 async function init(){
   _adm=Auth.require(['admin']);if(!_adm)return;
   document.getElementById('aname').textContent='Connecté : '+_adm.first_name;
+  const at=document.getElementById('aname-top');
+  if(at)at.textContent='👑 '+_adm.first_name+' '+_adm.last_name;
   await reload();gt('dash');
 }
 
