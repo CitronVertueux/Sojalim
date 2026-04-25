@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Test Sojalim</title>
+  <style>
+    body{font-family:Arial,sans-serif;padding:2rem;background:#f5f5f5}
+    .card{background:white;border-radius:8px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+    .ok{color:#27ae60;font-weight:700} .err{color:#e74c3c;font-weight:700} .wait{color:#e67e22}
+    input{width:100%;padding:.5rem;border:1px solid #ddd;border-radius:4px;margin:.3rem 0;font-size:14px}
+    button{background:#1a3a2a;color:white;border:none;padding:.6rem 1.2rem;border-radius:6px;cursor:pointer;font-size:14px;margin:.3rem}
+    pre{background:#1a1a1a;color:#0f0;padding:1rem;border-radius:6px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+    h2{color:#1a3a2a;margin-bottom:1rem}
+  </style>
+</head>
+<body>
+<h1 style="color:#1a3a2a">🔧 Diagnostic Sojalim</h1>
+
+<div class="card">
+  <h2>1 — Config</h2>
+  <div id="cfg"></div>
+</div>
+
+<div class="card">
+  <h2>2 — Test connexion Supabase</h2>
+  <button onclick="testConnection()">▶ Tester la connexion</button>
+  <pre id="conn">En attente…</pre>
+</div>
+
+<div class="card">
+  <h2>3 — Test lecture users</h2>
+  <button onclick="testUsers()">▶ Lire les users</button>
+  <pre id="users">En attente…</pre>
+</div>
+
+<div class="card">
+  <h2>4 — Test login</h2>
+  <input id="t-email" value="admin@sojalim.fr" placeholder="Email"/>
+  <input id="t-pw" value="Admin2024!" type="password" placeholder="Mot de passe"/>
+  <button onclick="testLogin()">▶ Tester le login</button>
+  <pre id="login">En attente…</pre>
+</div>
+
+<div class="card">
+  <h2>5 — Test check_password direct</h2>
+  <button onclick="testRPC()">▶ Tester le RPC</button>
+  <pre id="rpc">En attente…</pre>
+</div>
+
+<script src="js/config.js"></script>
+<script>
+// Affiche la config
+document.getElementById('cfg').innerHTML = `
+  <p>URL : <strong>${SUPABASE_URL}</strong></p>
+  <p>Clé (début) : <strong>${SUPABASE_ANON_KEY?.slice(0,30)}...</strong></p>
+  <p>APP_URL : <strong>${APP_URL}</strong></p>
+`;
+
+async function testConnection(){
+  const el = document.getElementById('conn');
+  el.textContent = '⏳ Test en cours…';
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/', {
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY }
+    });
+    el.textContent = `Status HTTP : ${res.status}\n${res.status===200?'✅ Connexion OK':'❌ Erreur'}`;
+  } catch(e) { el.textContent = '❌ Erreur : ' + e.message; }
+}
+
+async function testUsers(){
+  const el = document.getElementById('users');
+  el.textContent = '⏳ Lecture en cours…';
+  try {
+    // Test 1 : sans filtre
+    const r1 = await fetch(SUPABASE_URL + '/rest/v1/users?select=email,role,status&limit=5', {
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY }
+    });
+    const d1 = await r1.json();
+    el.textContent = `✅ Sans filtre (${d1.length} users) :\n${JSON.stringify(d1, null, 2)}\n\n`;
+
+    // Test 2 : avec filtre email
+    const email = 'admin@sojalim.fr';
+    const url2 = SUPABASE_URL + '/rest/v1/users?email=eq.' + email + '&select=email,status';
+    const r2 = await fetch(url2, {
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY }
+    });
+    const d2 = await r2.json();
+    el.textContent += `URL appelée :\n${url2}\n\nRésultat filtre email (${d2.length}) :\n${JSON.stringify(d2, null, 2)}`;
+  } catch(e) { el.textContent = '❌ Erreur : ' + e.message; }
+}
+
+async function testLogin(){
+  const el = document.getElementById('login');
+  el.textContent = '⏳ Test en cours…';
+  const email = document.getElementById('t-email').value;
+  const pw = document.getElementById('t-pw').value;
+  try {
+    const res = await SB.select('users', {
+      email: `eq.${email}`,
+      select: 'id,email,role,status,password_hash'
+    });
+    if(!res?.length){ el.textContent = '❌ Aucun user trouvé pour : ' + email; return; }
+    const u = res[0];
+    el.textContent = `✅ User trouvé :\n- Email : ${u.email}\n- Role : ${u.role}\n- Status : ${u.status}\n- Hash (début) : ${u.password_hash?.slice(0,20)}...\n\n`;
+
+    // Test check_password
+    const ok = await SB.rpc('check_password', { input_password: pw, hashed_password: u.password_hash });
+    el.textContent += `check_password résultat : ${JSON.stringify(ok)} (type: ${typeof ok})\n`;
+    el.textContent += ok === true || ok === 'true' ? '✅ MOT DE PASSE CORRECT' : '❌ MOT DE PASSE INCORRECT';
+  } catch(e) { el.textContent = '❌ Erreur : ' + e.message + '\n' + e.stack; }
+}
+
+async function testRPC(){
+  const el = document.getElementById('rpc');
+  el.textContent = '⏳ Test RPC en cours…';
+  try {
+    // Récupère le vrai hash d'abord
+    const res = await fetch(SUPABASE_URL + '/rest/v1/users?email=eq.admin@sojalim.fr&select=password_hash', {
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY }
+    });
+    const data = await res.json();
+    const hash = data[0]?.password_hash;
+    el.textContent = `Hash récupéré (${hash?.length} chars) : ${hash?.slice(0,30)}...\n\n`;
+
+    // Test RPC
+    const rpcRes = await fetch(SUPABASE_URL + '/rest/v1/rpc/check_password', {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input_password: 'Admin2024!', hashed_password: hash })
+    });
+    const rpcData = await rpcRes.text();
+    el.textContent += `RPC résultat brut : "${rpcData}" (type: ${typeof rpcData})\n`;
+    el.textContent += rpcData === 'true' ? '✅ RPC OK' : '❌ RPC retourne ' + rpcData;
+  } catch(e) { el.textContent = '❌ Erreur : ' + e.message; }
+}
+</script>
+</body>
+</html>
