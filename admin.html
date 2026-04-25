@@ -326,7 +326,7 @@ function rSearch(){
     <h2>Recherche globale</h2>
     <div class="card mb">
       <div class="flex gap" style="flex-wrap:wrap">
-        <div class="srch" style="flex:1"><span class="srch-ico">🔍</span><input class="inp srch-inp" id="gs" value="${_gq}" placeholder="Référence, plaque, chauffeur, email…" oninput="_gq=this.value;rSearch()"/></div>
+        <div class="srch" style="flex:1"><span class="srch-ico">🔍</span><input dir="ltr" class="inp srch-inp" id="gs" placeholder="Référence, plaque, chauffeur, email…" oninput="_gq=this.value;rSearch()"/></div>
         <div class="flex gap-sm">${[['all','Tout'],['appts','RDV'],['users','Comptes']].map(([v,l])=>`<button class="btn btn--pill btn--o ${_gt===v?'on':''}" onclick="_gt='${v}';rSearch()">${l}</button>`).join('')}</div>
       </div>
       ${q.length>=2?`<div class="muted mt">${ar.length+ur.length} résultat(s)</div>`:''}
