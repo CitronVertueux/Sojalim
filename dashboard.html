@@ -10,11 +10,11 @@
 <body>
 <header class="hdr">
   <div class="hdr__logo">
-    <img src="logo.png" alt="Sojalim" style="height:36px;object-fit:contain"/>
+    <img src="logo.png" alt="Sojalim" style="height:40px;object-fit:contain"/>
   </div>
   <div class="hdr__nav">
     <span id="hdr-role" class="hdr__role"></span>
-    <span style="color:rgba(245,240,232,.6);font-size:.83rem" id="hdr-hello">Bonjour <strong id="uname" style="color:#e8c96e"></strong></span>
+    <span style="color:var(--sub);font-size:.83rem" id="hdr-hello">Bonjour <strong id="uname" style="color:var(--green)"></strong></span>
     <button class="hdr__btn" onclick="toggleLang()" id="lang-toggle">🇪🇸</button>
     <button class="hdr__btn" onclick="Auth.logout()" id="btn-logout">🔒 Déconnexion</button>
   </div>
