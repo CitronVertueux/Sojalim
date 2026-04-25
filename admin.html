@@ -1035,7 +1035,7 @@ async function rPerms(){
                 <div style="font-size:.76rem;color:var(--muted)">${desc}</div>
               </div>
               <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;margin-left:1rem;cursor:pointer">
-                <input type="checkbox" ${enabled?'checked':''} onchange="togglePerm('${role}','${key}',this.checked)" style="opacity:0;width:0;height:0;position:absolute"/>
+                <input type="checkbox" ${enabled?'checked':''} onchange="togglePerm('${role}','${key}',this.checked,this)" style="opacity:0;width:0;height:0;position:absolute"/>
                 <span style="position:absolute;inset:0;background:${enabled?'var(--mid)':'#ccc'};border-radius:24px;transition:.2s">
                   <span style="position:absolute;height:18px;width:18px;left:${enabled?'23px':'3px'};bottom:3px;background:white;border-radius:50%;transition:.2s;box-shadow:0 1px 4px rgba(0,0,0,.2)"></span>
                 </span>
@@ -1048,9 +1048,8 @@ async function rPerms(){
     <div class="al al--i mt">💡 Les changements de permissions s'appliquent à la prochaine connexion de l'utilisateur.</div>`;
 }
 
-async function togglePerm(role,permission,enabled){
+async function togglePerm(role,permission,enabled,el){
   try{
-    // Upsert : insère si n'existe pas, met à jour si existe
     await fetch(`${SUPABASE_URL}/rest/v1/role_permissions`,{
       method:'POST',
       headers:{
@@ -1061,7 +1060,18 @@ async function togglePerm(role,permission,enabled){
       },
       body:JSON.stringify({role,permission,enabled})
     });
-  }catch(e){console.error('Perm error:',e);}
+    // Met à jour le visuel du toggle
+    const span=el.nextElementSibling;
+    if(span){
+      span.style.background=enabled?'var(--mid)':'#ccc';
+      const dot=span.querySelector('span');
+      if(dot)dot.style.left=enabled?'23px':'3px';
+    }
+  }catch(e){
+    // Revert le checkbox si erreur
+    el.checked=!enabled;
+    console.error('Perm error:',e);
+  }
 }
 
 document.addEventListener('DOMContentLoaded',init);
