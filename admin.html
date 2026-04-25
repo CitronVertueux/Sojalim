@@ -1050,9 +1050,17 @@ async function rPerms(){
 
 async function togglePerm(role,permission,enabled){
   try{
-    await SB.insert('role_permissions',{role,permission,enabled}).catch(()=>
-      SB.update('role_permissions',{role:`eq.${role}`,permission:`eq.${permission}`},{enabled})
-    );
+    // Upsert : insère si n'existe pas, met à jour si existe
+    await fetch(`${SUPABASE_URL}/rest/v1/role_permissions`,{
+      method:'POST',
+      headers:{
+        'apikey':SUPABASE_ANON_KEY,
+        'Authorization':'Bearer '+SUPABASE_ANON_KEY,
+        'Content-Type':'application/json',
+        'Prefer':'resolution=merge-duplicates,return=minimal'
+      },
+      body:JSON.stringify({role,permission,enabled})
+    });
   }catch(e){console.error('Perm error:',e);}
 }
 
