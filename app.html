@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Sojalim"/>
+  <meta name="theme-color" content="#1a3a2a"/>
+  <title>Sojalim RDV</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icon-192.png"/>
+  <link rel="stylesheet" href="css/app.css"/>
+  <link rel="stylesheet" href="css/mobile.css"/>
+</head>
+<body style="margin:0;padding:0;background:#f5f5f5">
+
+<!-- APP SHELL -->
+<div class="app-shell" id="app">
+
+  <!-- HEADER -->
+  <header class="app-hdr" id="app-hdr">
+    <img src="logo.png" alt="Sojalim" class="app-hdr__logo"/>
+    <div class="app-hdr__right">
+      <span class="app-hdr__badge" id="hdr-role"></span>
+      <div class="app-hdr__avatar" id="hdr-avatar" onclick="openDrawer()">?</div>
+    </div>
+  </header>
+
+  <!-- BODY -->
+  <div class="app-body" id="app-body">
+    <div class="m-loader"><div class="m-spinner"></div><span>Chargement…</span></div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="app-nav" id="app-nav">
+    <button class="nav-item on" id="nav-home" onclick="goPage('home')">
+      <span class="nav-item__ico">🏠</span>
+      <span class="nav-item__lbl" id="nl-home">Accueil</span>
+    </button>
+    <button class="nav-item" id="nav-planning" onclick="goPage('planning')">
+      <span class="nav-item__ico">📅</span>
+      <span class="nav-item__lbl" id="nl-planning">Planning</span>
+    </button>
+    <button class="nav-item" id="nav-new" onclick="goPage('new')" style="display:none">
+      <span class="nav-item__ico">➕</span>
+      <span class="nav-item__lbl" id="nl-new">Réserver</span>
+    </button>
+    <button class="nav-item" id="nav-rdvs" onclick="goPage('rdvs')" style="display:none">
+      <span class="nav-item__ico">📋</span>
+      <span class="nav-item__lbl" id="nl-rdvs">Mes RDV</span>
+      <span class="nav-item__dot" id="dot-rdvs"></span>
+    </button>
+    <button class="nav-item" id="nav-profile" onclick="goPage('profile')">
+      <span class="nav-item__ico">👤</span>
+      <span class="nav-item__lbl" id="nl-profile">Profil</span>
+    </button>
+  </nav>
+
+</div>
+
+<!-- FAB nouveau RDV (transporteur/chauffeur uniquement) -->
+<button class="fab" id="fab" style="display:none" onclick="goPage('new')">➕</button>
+
+<!-- DRAWER MENU -->
+<div class="m-drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="m-drawer" id="drawer">
+  <div class="m-drawer__hd">
+    <div class="m-drawer__name" id="drawer-name">—</div>
+    <div class="m-drawer__email" id="drawer-email">—</div>
+    <div style="margin-top:.5rem" id="drawer-role-badge"></div>
+  </div>
+  <div class="m-drawer__body">
+    <button class="m-drawer__item" onclick="goPage('profile');closeDrawer()"><span>👤</span> Mon Profil</button>
+    <button class="m-drawer__item" id="drawer-drivers" onclick="goPage('drivers');closeDrawer()" style="display:none"><span>👥</span> Mes Chauffeurs</button>
+    <button class="m-drawer__item" onclick="toggleLangApp();closeDrawer()"><span>🌍</span> <span id="drawer-lang">Español</span></button>
+    <button class="m-drawer__item" onclick="installPWAApp()"><span>📲</span> Installer l'app</button>
+  </div>
+  <div class="m-drawer__foot">
+    <button class="m-drawer__item" style="color:#e74c3c" onclick="Auth.logout()"><span>🔒</span> Déconnexion</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="m-toast" id="toast"></div>
+
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/email.js"></script>
+<script src="js/rdv.js"></script>
+<script>
+// ══ ÉTAT GLOBAL ══
+let _u=null,_appts=[],_cl=[],_sett={maxTrucks:20},_drivers=[];
+let _score=null,_page='home',_step=1,_date='',_slot='',_hf='upcoming';
+let _pd=todayStr();
+
+// ══ TRADUCTIONS ══
+const TX={
+  fr:{home:'Accueil',planning:'Planning',new:'Réserver',rdvs:'Mes RDV',profile:'Profil',
+      next:'🚛 Prochain RDV',noRdv:'Aucun RDV à venir',takeRdv:'Réserver un créneau',
+      upcoming:'À venir',past:'Passés',cancelled:'Annulés',all:'Tous',
+      confirmed:'✅ Confirmé',waitlist:'⏳ Attente',cancelledLbl:'❌ Annulé',
+      cancelBtn:'Annuler ce RDV',cancelConfirm:"Confirmer l'annulation ?",
+      step1:'Date',step2:'Créneau',step3:'Infos',chooseDate:'📅 Choisissez votre date',
+      slotsAvail:'Créneaux disponibles',slotTaken:'Pris',slotFree:'Libre',
+      driverName:'Chauffeur *',driverPhone:'Téléphone *',plate:'Immatriculation *',
+      loadType:'Type de chargement *',tonnage:'Tonnage (T) *',orderNum:'Bon de commande *',
+      notes:'Notes',confirm:'Confirmer →',joinWaitlist:"Rejoindre la liste d'attente",
+      required:'Tous les champs * sont obligatoires.',
+      confOk:'Rendez-vous confirmé !',confWl:"Liste d'attente",
+      confEmail:'📧 Confirmation envoyée à',another:'Réserver un autre créneau',
+      penalty:'Points de pénalité',noshow:'Non-venues',late:'Retards',partial:'Incomplets',
+      myDrivers:'Mes Chauffeurs',inviteDriver:'+ Inviter',
+      profileTitle:'Mon Profil',save:'Enregistrer',saved:'✅ Profil mis à jour !',
+      lang:'🇪🇸 Español'},
+  es:{home:'Inicio',planning:'Planning',new:'Reservar',rdvs:'Mis Citas',profile:'Perfil',
+      next:'🚛 Próxima cita',noRdv:'No hay citas próximas',takeRdv:'Reservar un horario',
+      upcoming:'Próximas',past:'Pasadas',cancelled:'Canceladas',all:'Todas',
+      confirmed:'✅ Confirmada',waitlist:'⏳ Espera',cancelledLbl:'❌ Cancelada',
+      cancelBtn:'Cancelar esta cita',cancelConfirm:'¿Confirmar la cancelación?',
+      step1:'Fecha',step2:'Horario',step3:'Datos',chooseDate:'📅 Elija su fecha',
+      slotsAvail:'Horarios disponibles',slotTaken:'Ocupado',slotFree:'Libre',
+      driverName:'Chófer *',driverPhone:'Teléfono *',plate:'Matrícula *',
+      loadType:'Tipo de carga *',tonnage:'Tonelaje (T) *',orderNum:'Nº de pedido *',
+      notes:'Notas',confirm:'Confirmar →',joinWaitlist:'Unirse a lista de espera',
+      required:'Todos los campos * son obligatorios.',
+      confOk:'¡Cita confirmada!',confWl:'Lista de espera',
+      confEmail:'📧 Confirmación enviada a',another:'Reservar otra cita',
+      penalty:'Puntos de penalización',noshow:'No presentados',late:'Retrasos',partial:'Incompl.',
+      myDrivers:'Mis Chóferes',inviteDriver:'+ Invitar',
+      profileTitle:'Mi Perfil',save:'Guardar',saved:'✅ ¡Perfil actualizado!',
+      lang:'🇫🇷 Français'}
+};
+function T(k){return (TX[LANG]||TX.fr)[k]||k;}
+
+// ══ INIT ══
+async function init(){
+  // Redirige si admin/manager/staff
+  _u=Auth.user();
+  if(!_u){go('index.html');return;}
+  if(_u.role==='admin'){go('admin.html');return;}
+  if(_u.role==='manager'||_u.role==='staff'){go('staff.html');return;}
+
+  // Setup UI selon rôle
+  applyLang();
+  setupUI();
+
+  // Charge données
+  const[a,c,s,sc]=await Promise.all([
+    (_u.role==='transporter'?RDV.getTransporterAppts(_u.id):RDV.getUserAppts(_u.id)).catch(()=>[]),
+    RDV.getClosures().catch(()=>[]),
+    RDV.getSettings().catch(()=>({maxTrucks:20})),
+    RDV.getUserScore(_u.id).catch(()=>null),
+  ]);
+  _appts=a;_cl=c;_sett=s;_score=sc;
+
+  if(_u.role==='transporter'){
+    _drivers=await SB.select('users',{parent_id:`eq.${_u.id}`,role:'eq.driver',select:'id,email,first_name,last_name,phone,status'}).catch(()=>[]);
+  }
+
+  // Hash route
+  const hash=location.hash.slice(1)||'home';
+  goPage(hash,true);
+
+  // Service Worker
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  }
+}
+
+function setupUI(){
+  // Avatar
+  const av=document.getElementById('hdr-avatar');
+  if(av)av.textContent=(_u.first_name||'?')[0].toUpperCase();
+
+  // Badge rôle
+  const roleLabels={transporter:'🚛',driver:'🚗'};
+  const rb=document.getElementById('hdr-role');
+  if(rb)rb.textContent=_u.role==='transporter'?'Transporteur':'Chauffeur';
+
+  // Drawer
+  document.getElementById('drawer-name').textContent=_u.first_name+' '+_u.last_name;
+  document.getElementById('drawer-email').textContent=_u.email;
+  document.getElementById('drawer-role-badge').innerHTML=`<span class="m-pen ok">${roleLabels[_u.role]||'👤'} ${_u.company}</span>`;
+
+  // Nav selon rôle
+  if(_u.role==='transporter'||_u.role==='driver'){
+    document.getElementById('nav-new').style.display='';
+    document.getElementById('nav-rdvs').style.display='';
+    document.getElementById('fab').style.display='flex';
+  }
+  if(_u.role==='transporter'){
+    document.getElementById('drawer-drivers').style.display='';
+  }
+}
+
+function applyLang(){
+  document.documentElement.lang=LANG;
+  ['home','planning','new','rdvs','profile'].forEach(k=>{
+    const el=document.getElementById('nl-'+k);
+    if(el)el.textContent=T(k);
+  });
+  const dl=document.getElementById('drawer-lang');
+  if(dl)dl.textContent=T('lang');
+}
+
+function toggleLangApp(){
+  const newLang=LANG==='fr'?'es':'fr';
+  localStorage.setItem('slm_lang',newLang);
+  location.reload();
+}
+
+// ══ NAVIGATION ══
+function goPage(page,initial=false){
+  _page=page;
+  // Update nav
+  ['home','planning','new','rdvs','profile','drivers'].forEach(p=>{
+    const b=document.getElementById('nav-'+p);
+    if(b)b.classList.toggle('on',p===page);
+  });
+  // FAB visible sauf sur new
+  const fab=document.getElementById('fab');
+  if(fab)fab.style.display=page==='new'?'none':'flex';
+
+  location.hash=page;
+  const renders={home:rHome,planning:rPlanning,new:rNew,rdvs:rRdvs,profile:rProfile,drivers:rDrivers};
+  if(renders[page])renders[page]();
+}
+
+// ══ ACCUEIL ══
+function rHome(){
+  const b=document.getElementById('app-body');
+  const now=todayStr();
+  const upcoming=_appts.filter(a=>a.date>=now&&a.status==='confirmed').sort((a,b2)=>a.date.localeCompare(b2.date)||a.slot.localeCompare(b2.slot));
+  const next=upcoming[0]||null;
+  const mth=now.slice(0,7);
+  const mOk=_appts.filter(a=>a.status==='confirmed'&&a.date?.startsWith(mth));
+  const tonn=mOk.reduce((s,a)=>s+parseFloat(a.tonnage||0),0);
+  const wl=_appts.filter(a=>a.status==='waitlist'&&a.date>=now);
+
+  b.innerHTML=`<div class="page">
+    ${next?`<div class="hero-card">
+      <div class="hero-card__label">${T('next')}</div>
+      <div class="hero-card__date">${fmtDate(next.date)}</div>
+      <div class="hero-card__info">${next.slot} – ${addMins(next.slot,30)} · ${next.truck_plate} · ${next.tonnage}T</div>
+      <div style="margin-top:.7rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem">
+        <span class="hero-card__ref">${next.id}</span>
+        <span style="font-size:.78rem;color:rgba(245,240,232,.7)">👤 ${next.driver_name}</span>
+      </div>
+    </div>`:`<div class="hero-card" style="text-align:center;padding:1.6rem 1rem">
+      <div style="font-size:2rem;margin-bottom:.5rem">📭</div>
+      <div style="color:rgba(245,240,232,.8);margin-bottom:.9rem">${T('noRdv')}</div>
+      <button class="m-btn m-btn--g" style="width:auto;padding:.55rem 1.3rem" onclick="goPage('new')">${T('takeRdv')}</button>
+    </div>`}
+
+    <div class="stat-row">
+      <div class="stat-pill"><div class="stat-pill__val" style="color:#27ae60">${upcoming.length}</div><div class="stat-pill__lbl">À venir</div></div>
+      <div class="stat-pill"><div class="stat-pill__val" style="color:#c9a84c">${tonn.toFixed(0)}T</div><div class="stat-pill__lbl">Ce mois</div></div>
+      <div class="stat-pill"><div class="stat-pill__val" style="color:${_score?.alert_level==='danger'?'#e74c3c':_score?.alert_level==='warning'?'#e67e22':'#2d6a4f'}">${_score?.total_penalty||0}</div><div class="stat-pill__lbl">Pénalités</div></div>
+    </div>
+
+    ${_score&&_score.alert_level!=='ok'?`<div class="m-al m-al--${_score.alert_level==='danger'?'e':'w'}" style="margin-bottom:.8rem">
+      ${_score.alert_level==='danger'?'🔴':'🟠'} Score : <strong>${_score.total_penalty} pt</strong> — ${_score.alert_level==='danger'?'Risque de suspension':'Avertissement'}<br>
+      <span style="font-size:.78rem">Non-venues : ${_score.no_shows} · Retards : ${_score.lates}</span>
+    </div>`:''}
+
+    ${upcoming.length>0?`
+    <div class="m-section"><span class="m-section__t">Prochains RDV</span><span class="m-section__a" onclick="goPage('rdvs')">Voir tout</span></div>
+    ${upcoming.slice(0,3).map(a=>rdvCard(a,now)).join('')}`:''}
+
+    ${wl.length>0?`<div class="m-al m-al--w">⏳ ${wl.length} RDV en liste d'attente</div>`:''}
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.7rem;margin-top:.5rem">
+      <button class="m-btn m-btn--p" onclick="goPage('new')">➕ ${T('new')}</button>
+      ${_u.role==='transporter'?`<button class="m-btn m-btn--o" onclick="goPage('drivers')">👥 ${T('myDrivers')}</button>`:`<button class="m-btn m-btn--o" onclick="goPage('rdvs')">📋 ${T('rdvs')}</button>`}
+    </div>
+  </div>`;
+}
+
+// ══ PLANNING ══
+function rPlanning(){
+  const b=document.getElementById('app-body');
+  const da=_appts.filter(a=>a.date===_pd&&a.status!=='cancelled').sort((a,b2)=>a.slot.localeCompare(b2.slot));
+  const conf=da.filter(a=>a.status==='confirmed');
+  const wl=da.filter(a=>a.status==='waitlist');
+  const tonn=conf.reduce((s,a)=>s+parseFloat(a.tonnage||0),0);
+
+  b.innerHTML=`<div class="page">
+    <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.9rem">
+      <button class="m-btn m-btn--o" style="width:auto;padding:.5rem .8rem;border-radius:10px" onclick="navPD(-1)">◀</button>
+      <input type="date" value="${_pd}" style="flex:1;padding:.6rem .8rem;border:1.5px solid #e8e8e8;border-radius:10px;font-weight:700;color:#1a3a2a;font-family:inherit;font-size:.9rem;text-align:center;direction:ltr" onchange="_pd=this.value;rPlanning()"/>
+      <button class="m-btn m-btn--o" style="width:auto;padding:.5rem .8rem;border-radius:10px" onclick="navPD(1)">▶</button>
+    </div>
+    <div class="stat-row" style="margin-bottom:.9rem">
+      <div class="stat-pill"><div class="stat-pill__val" style="color:#27ae60">${conf.length}</div><div class="stat-pill__lbl">Confirmés</div></div>
+      <div class="stat-pill"><div class="stat-pill__val" style="color:#c9a84c">${tonn.toFixed(0)}T</div><div class="stat-pill__lbl">Tonnage</div></div>
+      <div class="stat-pill"><div class="stat-pill__val" style="color:#e67e22">${wl.length}</div><div class="stat-pill__lbl">Attente</div></div>
+    </div>
+    ${!isDayOpen(_pd,_cl)?`<div class="m-al m-al--e">⛔ ${_cl.find(c=>c.date===_pd)?'Fermeture : '+_cl.find(c=>c.date===_pd).reason:HOLIDAYS.has(_pd)?'Jour férié':'Week-end'}</div>`:''}
+    ${conf.length===0?`<div class="m-empty"><div class="m-empty__ico">📭</div><div class="m-empty__txt">Aucun RDV ce jour</div></div>`:
+    `<div class="m-card">${conf.map(a=>`
+      <div class="m-plan-row" onclick="toggleMDetail('pd-${a.id.replace(/[^a-z0-9]/gi,'')}')">
+        <div onclick="toggleCheck(event,this)" class="m-check"></div>
+        <div style="background:#27ae60;color:white;border-radius:7px;padding:.25rem .6rem;font-weight:700;font-size:.8rem;flex-shrink:0">${a.slot.slice(0,5)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:.88rem;color:#1a3a2a">${a.driver_name}</div>
+          <div style="font-size:.75rem;color:#aaa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.company_name} · ${a.truck_plate} · ${a.tonnage}T</div>
+        </div>
+        <span style="color:#ddd;font-size:.8rem">▼</span>
+      </div>
+      <div id="pd-${a.id.replace(/[^a-z0-9]/gi,'')}" style="display:none;padding:.8rem 1rem;background:#fafafa;border-top:1px solid #f5f5f5">
+        <div class="m-grid">
+          ${[['Chauffeur',a.driver_name],['Téléphone',a.driver_phone||'—'],['Plaque',a.truck_plate],['Chargement',a.load_type],['Tonnage',a.tonnage+'T'],['Bon de cmd',a.order_number]].map(([l,v])=>`<div><span class="m-field__l">${l}</span><span class="m-field__v">${v}</span></div>`).join('')}
+        </div>
+        ${a.notes?`<div style="font-size:.8rem;color:#aaa;font-style:italic;margin-bottom:.6rem">📝 ${a.notes}</div>`:''}
+        <div style="font-size:.72rem;color:#ccc;font-family:monospace">${a.id}</div>
+      </div>`).join('')}</div>`}
+    ${wl.length>0?`<div style="margin-top:.8rem"><div style="font-size:.78rem;color:#e67e22;font-weight:700;margin-bottom:.4rem">⏳ Liste d'attente (${wl.length})</div>${wl.map(a=>`<div style="display:flex;align-items:center;gap:.6rem;padding:.55rem 0;border-bottom:1px dashed #ffe082"><span style="background:#e67e22;color:white;border-radius:6px;padding:.2rem .5rem;font-weight:700;font-size:.78rem">${a.slot.slice(0,5)}</span><span style="font-weight:600;font-size:.85rem">${a.driver_name}</span><span style="font-size:.78rem;color:#aaa;margin-left:auto">${a.tonnage}T</span></div>`).join('')}</div>`:''}
+  </div>`;
+}
+
+function navPD(d){
+  const dt=new Date(_pd+'T12:00:00');dt.setDate(dt.getDate()+d);
+  while(dt.getDay()===0||dt.getDay()===6)dt.setDate(dt.getDate()+d);
+  _pd=dt.toISOString().split('T')[0];rPlanning();
+}
+function toggleCheck(e,el){e.stopPropagation();el.classList.toggle('on');el.innerHTML=el.classList.contains('on')?'<svg width="13" height="10" viewBox="0 0 13 10" fill="none"><path d="M1 5L5 9L12 1" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>':'';}
+function toggleMDetail(id){const el=document.getElementById(id);if(el)el.style.display=el.style.display==='block'?'none':'block';}
+
+// ══ NOUVEAU RDV ══
+function rNew(){
+  const b=document.getElementById('app-body');
+  const now=todayStr();
+  const da=_date?_appts.filter(a=>a.date===_date&&a.status!=='cancelled'):[];
+  const taken=da.map(a=>a.slot.slice(0,5));
+  const cap=da.filter(a=>a.status==='confirmed').length>=_sett.maxTrucks;
+  const open=isDayOpen(_date,_cl);
+
+  b.innerHTML=`<div class="page">
+    <div class="m-stepper">
+      <div class="m-step ${_step>1?'done':_step===1?'now':''}"><div class="m-step__ico">📅</div><div class="m-step__lbl">${T('step1')}</div></div>
+      <div class="m-step ${_step>2?'done':_step===2?'now':''}"><div class="m-step__ico">🕐</div><div class="m-step__lbl">${T('step2')}</div></div>
+      <div class="m-step ${_step===3?'now':''}"><div class="m-step__ico">📝</div><div class="m-step__lbl">${T('step3')}</div></div>
+    </div>
+
+    <!-- Étape 1 : Date -->
+    <div class="m-form">
+      <div class="m-form__title">${T('chooseDate')}</div>
+      <div class="m-field">
+        <input class="m-inp" type="date" id="rdv-date" value="${_date}" min="${now}" onchange="changeDate(this.value)" style="font-size:1rem;font-weight:700;text-align:center"/>
+      </div>
+      ${_date&&!open?`<div class="m-al m-al--e">${HOLIDAYS.has(_date)?'⚠️ Jour férié':_cl.find(c=>c.date===_date)?'⚠️ Fermeture : '+_cl.find(c=>c.date===_date).reason:'⚠️ Week-end'}</div>`:''}
+      ${_date&&open&&cap?`<div class="m-al m-al--w">⚠️ Capacité atteinte — liste d'attente</div>`:''}
+      <div style="font-size:.75rem;color:#aaa;text-align:center">📌 Lun–Ven · 5h00–16h00</div>
+    </div>
+
+    <!-- Étape 2 : Créneau -->
+    ${_step>=2&&_date&&open?`<div class="m-form">
+      <div class="m-form__title">${T('slotsAvail')} — ${fmtShort(_date)}</div>
+      <div class="m-slots">
+        ${SLOTS.map(s=>`<button class="m-slot ${taken.includes(s)?'taken':_slot===s?'selected':''}" ${taken.includes(s)?'disabled':''} onclick="pickSlot('${s}')">${s}</button>`).join('')}
+      </div>
+    </div>`:''}
+
+    <!-- Étape 3 : Infos -->
+    ${_step>=3&&_slot?`<div class="m-form">
+      <div class="m-form__title">📝 ${_slot} – ${addMins(_slot,30)} · ${fmtShort(_date)}</div>
+      <div class="m-field"><label class="m-lbl">${T('driverName')}</label><input class="m-inp" id="f-dn" value="${_u.role==='driver'?_u.first_name+' '+_u.last_name:''}"/></div>
+      <div class="m-field"><label class="m-lbl">${T('driverPhone')}</label><input class="m-inp" id="f-dp" type="tel" value="${_u.role==='driver'?_u.phone:''}" placeholder="06 / +34"/></div>
+      <div class="m-field"><label class="m-lbl">${T('plate')}</label><input class="m-inp" id="f-tp" placeholder="AB-123-CD" style="text-transform:uppercase"/></div>
+      <div class="m-field"><label class="m-lbl">${T('loadType')}</label>
+        <select class="m-sel" id="f-lt">${LOAD_TYPES.map(lt=>`<option>${lt}</option>`).join('')}</select>
+      </div>
+      <div class="m-field"><label class="m-lbl">${T('tonnage')}</label><input class="m-inp" id="f-to" type="number" placeholder="28" inputmode="decimal"/></div>
+      <div class="m-field"><label class="m-lbl">${T('orderNum')}</label><input class="m-inp" id="f-on" placeholder="BC-2025-XXXXX"/></div>
+      <div class="m-field"><label class="m-lbl">${T('notes')}</label><textarea class="m-ta" id="f-no"></textarea></div>
+      <div id="rdv-al"></div>
+      <button class="m-btn m-btn--p" onclick="submitRdv()">${cap?T('joinWaitlist'):T('confirm')}</button>
+    </div>`:''}
+  </div>`;
+}
+
+function changeDate(v){
+  _date=v;_slot='';
+  if(v&&isDayOpen(v,_cl)){
+    _step=2;
+    RDV.getDayAppts(v).then(da=>{_appts=_appts.filter(a=>a.date!==v).concat(da);rNew();});
+  }else{_step=1;rNew();}
+}
+function pickSlot(s){_slot=s;_step=3;rNew();}
+
+async function submitRdv(){
+  const btn=document.querySelector('[onclick="submitRdv()"]'),done=btnLoading(btn,'…');
+  const data={date:_date,slot:_slot,
+    driver_name:document.getElementById('f-dn')?.value.trim(),
+    driver_phone:document.getElementById('f-dp')?.value.trim(),
+    truck_plate:document.getElementById('f-tp')?.value.trim().toUpperCase(),
+    load_type:document.getElementById('f-lt')?.value,
+    tonnage:document.getElementById('f-to')?.value,
+    order_number:document.getElementById('f-on')?.value.trim(),
+    notes:document.getElementById('f-no')?.value,
+    company_name:_u.company};
+  if(!data.driver_name||!data.driver_phone||!data.truck_plate||!data.tonnage||!data.order_number){
+    done();document.getElementById('rdv-al').innerHTML=`<div class="m-al m-al--e">${T('required')}</div>`;return;
+  }
+  try{
+    const{appt,status}=await RDV.create(_u,data);
+    _appts.push(appt);
+    document.getElementById('app-body').innerHTML=`<div class="page"><div class="m-success">
+      <div class="m-success__ico">${status==='waitlist'?'⏳':'✅'}</div>
+      <div class="m-success__title">${T(status==='waitlist'?'confWl':'confOk')}</div>
+      <div class="m-success__ref">${appt.id}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;text-align:left;font-size:.83rem;color:rgba(245,240,232,.85);margin:.8rem 0">
+        ${[['📅',fmtDate(appt.date)],['🕐',`${appt.slot}–${addMins(appt.slot,30)}`],['🚛',appt.truck_plate],['🫘',appt.load_type],['⚖️',appt.tonnage+'T'],['📋',appt.order_number]].map(([ic,v])=>`<div>${ic} ${v}</div>`).join('')}
+      </div>
+      <div style="font-size:.8rem;color:rgba(245,240,232,.55);margin-bottom:1.2rem">${T('confEmail')} ${_u.email}</div>
+      <button class="m-btn m-btn--g" onclick="resetRdv()">${T('another')}</button>
+    </div></div>`;
+    Email.confirmed(_u,appt);
+    showToast(status==='waitlist'?'⏳ Ajouté à la liste d\'attente':'✅ RDV confirmé !');
+  }catch(e){done();document.getElementById('rdv-al').innerHTML=`<div class="m-al m-al--e">${e.message}</div>`;}
+}
+function resetRdv(){_step=1;_date='';_slot='';goPage('new');}
+
+// ══ MES RDV ══
+function rRdvs(){
+  const b=document.getElementById('app-body');
+  const now=todayStr();
+  const list=_appts.filter(a=>{
+    if(_hf==='upcoming')return a.date>=now&&a.status!=='cancelled';
+    if(_hf==='past')    return a.date<now;
+    if(_hf==='cancelled')return a.status==='cancelled';
+    return true;
+  }).sort((a,b2)=>_hf==='upcoming'?a.date.localeCompare(b2.date):b2.date.localeCompare(a.date));
+
+  b.innerHTML=`<div class="page">
+    <div style="display:flex;gap:.4rem;margin-bottom:.9rem;overflow-x:auto;padding-bottom:.2rem">
+      ${[['upcoming',T('upcoming')],['past',T('past')],['cancelled',T('cancelled')],['all',T('all')]].map(([v,l])=>`<button onclick="_hf='${v}';rRdvs()" style="padding:.4rem .85rem;border-radius:20px;border:1.5px solid ${_hf===v?'#1a3a2a':'#e8e8e8'};background:${_hf===v?'#1a3a2a':'white'};color:${_hf===v?'white':'#888'};font-weight:600;font-size:.78rem;cursor:pointer;font-family:inherit;white-space:nowrap">${l}</button>`).join('')}
+    </div>
+    ${list.length===0?`<div class="m-empty"><div class="m-empty__ico">📭</div><div class="m-empty__txt">Aucun RDV ici</div>${_hf==='upcoming'?`<button class="m-btn m-btn--p" style="margin-top:1rem" onclick="goPage('new')">➕ Réserver</button>`:''}</div>`:
+    list.map(a=>rdvCard(a,now)).join('')}
+  </div>`;
+}
+
+function rdvCard(a,now){
+  const xx=a.status==='cancelled',wl=a.status==='waitlist';
+  const did='rc'+a.id.replace(/[^a-z0-9]/gi,'');
+  const statusLbl=xx?T('cancelledLbl'):wl?T('waitlist'):T('confirmed');
+  const chipCls=xx?'xx':wl?'wl':'';
+  return`<div class="m-card">
+    <div class="m-card__hd" onclick="toggleMDetail('${did}')">
+      <div class="m-chip ${chipCls}">${a.slot.slice(0,5)}</div>
+      <div style="flex:1;min-width:0">
+        <div class="m-card__body">${fmtDate(a.date)}</div>
+        <div class="m-card__sub">🚛 ${a.truck_plate} · 🫘 ${a.load_type} · ⚖️ ${a.tonnage}T</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:.72rem;color:${xx?'#e74c3c':wl?'#e67e22':'#27ae60'};font-weight:700">${statusLbl}</div>
+        <div style="color:#ddd;font-size:.8rem;margin-top:.1rem">▼</div>
+      </div>
+    </div>
+    <div class="m-card__detail" id="${did}">
+      <div class="m-grid">
+        ${[['Chauffeur',a.driver_name],['Téléphone',a.driver_phone||'—'],['Plaque',a.truck_plate],['Chargement',a.load_type],['Tonnage',a.tonnage+'T'],['Bon de cmd',a.order_number],['Société',a.company_name||'—'],['Notes',a.notes||'—']].map(([l,v])=>`<div><span class="m-field__l">${l}</span><span class="m-field__v">${v}</span></div>`).join('')}
+      </div>
+      <div style="font-size:.7rem;color:#ccc;font-family:monospace;margin-bottom:.7rem">${a.id}</div>
+      ${!xx&&a.date>=now?`<button class="m-btn m-btn--r" style="padding:.6rem" onclick="cancelAppt('${a.id}')">${T('cancelBtn')}</button>`:''}
+    </div>
+  </div>`;
+}
+
+async function cancelAppt(id){
+  if(!confirm(T('cancelConfirm')))return;
+  await RDV.cancel(id);
+  const a=_appts.find(x=>x.id===id);
+  _appts=_appts.map(x=>x.id===id?{...x,status:'cancelled'}:x);
+  if(a)Email.cancelled(_u,a);
+  showToast('❌ RDV annulé');
+  rRdvs();
+}
+
+// ══ CHAUFFEURS ══
+function rDrivers(){
+  const b=document.getElementById('app-body');
+  b.innerHTML=`<div class="page">
+    <div class="m-section"><span class="m-section__t">${T('myDrivers')}</span></div>
+    <div id="inv-drv-form"></div>
+    ${_drivers.length===0?`<div class="m-empty"><div class="m-empty__ico">👥</div><div class="m-empty__txt">Aucun chauffeur</div><button class="m-btn m-btn--p" style="margin-top:1rem" onclick="showInvDrv()">${T('inviteDriver')}</button></div>`:
+    `${_drivers.map(d=>`<div class="m-card"><div class="m-card__hd">
+      <div style="width:38px;height:38px;border-radius:50%;background:#2980b9;color:white;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🚗</div>
+      <div style="flex:1"><div class="m-card__body">${d.first_name} ${d.last_name}</div><div class="m-card__sub">${d.email}</div></div>
+      <span style="font-size:.72rem;font-weight:700;color:${d.status==='active'?'#27ae60':d.status==='pending'?'#e67e22':'#e74c3c'}">${d.status==='active'?'✅':d.status==='pending'?'⏳':'🔴'}</span>
+    </div></div>`).join('')}
+    <button class="m-btn m-btn--o" style="margin-top:.5rem" onclick="showInvDrv()">+ ${T('inviteDriver')}</button>`}
+  </div>`;
+}
+
+function showInvDrv(){
+  document.getElementById('inv-drv-form').innerHTML=`<div class="m-form" style="border:2px solid #2d6a4f">
+    <div class="m-form__title">✉️ Inviter un chauffeur</div>
+    <div id="inv-d-al"></div>
+    <div class="m-field"><label class="m-lbl">Email *</label><input class="m-inp" id="inv-em" type="email"/></div>
+    <div class="m-field"><label class="m-lbl">Note</label><input class="m-inp" id="inv-no" placeholder="Ex: Camion 40T"/></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
+      <button class="m-btn m-btn--p" onclick="sendDrvInv()">✉️ Envoyer</button>
+      <button class="m-btn m-btn--o" onclick="document.getElementById('inv-drv-form').innerHTML=''">Annuler</button>
+    </div>
+  </div>`;
+}
+
+async function sendDrvInv(){
+  const em=document.getElementById('inv-em').value.trim();
+  const no=document.getElementById('inv-no').value.trim();
+  const al=document.getElementById('inv-d-al');
+  try{const inv=await Auth.createInvitation(em,'driver',_u.id,no);await Email.inviteDriver(em,inv.token,_u,no);al.innerHTML=`<div class="m-al m-al--s">✅ Invitation envoyée</div>`;setTimeout(()=>{document.getElementById('inv-drv-form').innerHTML='';},2500);}
+  catch(e){al.innerHTML=`<div class="m-al m-al--e">${e.message}</div>`;}
+}
+
+// ══ PROFIL ══
+function rProfile(){
+  const b=document.getElementById('app-body');
+  const roleLabels={transporter:'🚛 Transporteur',driver:'🚗 Chauffeur'};
+  b.innerHTML=`<div class="page">
+    <div class="m-profile-hd">
+      <div class="m-avatar">${(_u.first_name||'?')[0].toUpperCase()}</div>
+      <div style="font-weight:700;font-size:1.1rem;color:#1a3a2a">${_u.first_name} ${_u.last_name}</div>
+      <div style="color:#888;font-size:.85rem">${_u.email}</div>
+      <div style="margin-top:.4rem"><span class="m-pen ok">${roleLabels[_u.role]||_u.role} · ${_u.company}</span></div>
+    </div>
+
+    ${_score&&_score.total_incidents>0?`<div class="m-al m-al--${_score.alert_level==='ok'?'s':_score.alert_level==='danger'?'e':'w'}" style="margin-bottom:.8rem">
+      <strong>${T('penalty')} : ${_score.total_penalty} pt</strong><br>
+      <span style="font-size:.8rem">${T('noshow')} : ${_score.no_shows} · ${T('late')} : ${_score.lates} · ${T('partial')} : ${_score.partial_loads}</span>
+    </div>`:''}
+
+    <div class="m-form">
+      <div class="m-form__title">${T('profileTitle')}</div>
+      <div id="p-al"></div>
+      <div class="m-field"><label class="m-lbl">Prénom</label><input class="m-inp" id="p-fn" value="${_u.first_name||''}"/></div>
+      <div class="m-field"><label class="m-lbl">Nom</label><input class="m-inp" id="p-ln" value="${_u.last_name||''}"/></div>
+      <div class="m-field"><label class="m-lbl">Société</label><input class="m-inp" id="p-co" value="${_u.company||''}"/></div>
+      <div class="m-field"><label class="m-lbl">Téléphone</label><input class="m-inp" id="p-ph" type="tel" value="${_u.phone||''}"/></div>
+      <div class="m-field"><label class="m-lbl">SIRET</label><input class="m-inp" id="p-si" value="${_u.siret||''}"/></div>
+      <div class="m-field"><label class="m-lbl">Nouveau mot de passe</label><input class="m-inp" id="p-pw" type="password" placeholder="Laisser vide = inchangé"/></div>
+      <button class="m-btn m-btn--p" onclick="saveProfile()">${T('save')}</button>
+    </div>
+  </div>`;
+}
+
+async function saveProfile(){
+  const al=document.getElementById('p-al');
+  try{
+    await Auth.updateProfile(_u.id,{
+      first_name:document.getElementById('p-fn')?.value.trim(),
+      last_name:document.getElementById('p-ln')?.value.trim(),
+      company:document.getElementById('p-co')?.value.trim(),
+      phone:document.getElementById('p-ph')?.value.trim(),
+      siret:document.getElementById('p-si')?.value.trim(),
+      password:document.getElementById('p-pw')?.value||undefined,
+    });
+    _u=Auth.user();
+    document.getElementById('hdr-avatar').textContent=(_u.first_name||'?')[0].toUpperCase();
+    showToast(T('saved'));
+    al.innerHTML=`<div class="m-al m-al--s">${T('saved')}</div>`;
+  }catch(e){al.innerHTML=`<div class="m-al m-al--e">${e.message}</div>`;}
+}
+
+// ══ DRAWER ══
+function openDrawer(){document.getElementById('drawer').classList.add('open');document.getElementById('drawer-overlay').classList.add('open');}
+function closeDrawer(){document.getElementById('drawer').classList.remove('open');document.getElementById('drawer-overlay').classList.remove('open');}
+
+// ══ TOAST ══
+let _toastTimer=null;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ══ PWA INSTALL ══
+let _pwaPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();_pwaPrompt=e;});
+function installPWAApp(){
+  if(_pwaPrompt){_pwaPrompt.prompt();_pwaPrompt.userChoice.then(r=>{if(r.outcome==='accepted')showToast('✅ App installée !');});}
+  else showToast('Utilisez le menu du navigateur pour installer');
+}
+
+// ══ HASH NAVIGATION ══
+window.addEventListener('popstate',()=>{
+  const page=location.hash.slice(1)||'home';
+  goPage(page,true);
+});
+
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
