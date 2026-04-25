@@ -8,38 +8,30 @@
   <link rel="stylesheet" href="css/app.css"/>
 </head>
 <body>
-<!-- HEADER -->
 <header class="hdr">
   <div class="hdr__logo">
-    <img src="https://www.sanders.fr/wp-content/themes/sanders/dist/assets/logo-header-lv8jqXRJ.svg" alt="Sanders" onerror="this.style.display='none'"/>
+    <span style="color:white;font-family:Georgia,serif;font-size:1rem;font-weight:700;letter-spacing:.05em">SOJALIM</span>
     <div class="hdr__sep"></div>
-    <img src="https://www.euralis.fr/wp-content/uploads/2021/09/logo.png" alt="Euralis" onerror="this.style.display='none'"/>
+    <span style="color:rgba(245,240,232,.55);font-size:.78rem;font-weight:600">Sanders Euralis</span>
   </div>
   <div class="hdr__nav">
     <span id="hdr-role" class="hdr__role"></span>
-    <span style="color:rgba(245,240,232,.6);font-size:.83rem">Bonjour <strong id="uname" style="color:#e8c96e"></strong></span>
-    <div class="pwa-wrap">
-      <button class="btn btn--gh btn--sm pwa-btn" onclick="installPWA(this)" style="display:none;border-radius:10px">📲</button>
-      <div class="pwa-tip"><p style="font-size:.8rem;color:var(--sub)">🤖 Menu ⋮ → Ajouter · 🍎 Partager → Écran d'accueil</p></div>
-    </div>
-    <button class="hdr__btn" onclick="Auth.logout()">🔒 Déconnexion</button>
+    <span style="color:rgba(245,240,232,.6);font-size:.83rem" id="hdr-hello">Bonjour <strong id="uname" style="color:#e8c96e"></strong></span>
+    <button class="hdr__btn" onclick="toggleLang()" id="lang-toggle">🇪🇸</button>
+    <button class="hdr__btn" onclick="Auth.logout()" id="btn-logout">🔒 Déconnexion</button>
   </div>
 </header>
 
-<!-- MENTION PÉNALITÉ (affichée si score élevé) -->
 <div id="penalty-banner"></div>
 
-<!-- CONTENU -->
 <div style="max-width:1000px;margin:1.5rem auto;padding:0 1.5rem 4rem">
-  <!-- Tab nav -->
   <div class="tab-nav" id="tab-nav">
-    <button class="tab-nav__btn on" onclick="showTab('home')"    id="tn-home">🏠 Accueil</button>
-    <button class="tab-nav__btn"   onclick="showTab('new')"     id="tn-new">✚ Nouveau RDV</button>
-    <button class="tab-nav__btn"   onclick="showTab('hist')"    id="tn-hist">📋 Mes RDV</button>
-    <button class="tab-nav__btn"   onclick="showTab('drivers')" id="tn-drivers" style="display:none">👥 Mes Chauffeurs</button>
-    <button class="tab-nav__btn"   onclick="showTab('prof')"    id="tn-prof">👤 Mon Profil</button>
+    <button class="tab-nav__btn on" onclick="showTab('home')"    id="tn-home">🏠 <span id="t-home">Accueil</span></button>
+    <button class="tab-nav__btn"   onclick="showTab('new')"     id="tn-new">✚ <span id="t-new">Nouveau RDV</span></button>
+    <button class="tab-nav__btn"   onclick="showTab('hist')"    id="tn-hist">📋 <span id="t-hist">Mes RDV</span></button>
+    <button class="tab-nav__btn"   onclick="showTab('drivers')" id="tn-drivers" style="display:none">👥 <span id="t-drivers">Mes Chauffeurs</span></button>
+    <button class="tab-nav__btn"   onclick="showTab('prof')"    id="tn-prof">👤 <span id="t-prof">Mon Profil</span></button>
   </div>
-
   <div id="tab-home"    class="fade"></div>
   <div id="tab-new"     style="display:none"></div>
   <div id="tab-hist"    style="display:none"></div>
@@ -52,19 +44,155 @@
 <script src="js/email.js"></script>
 <script src="js/rdv.js"></script>
 <script>
+// ── TRADUCTIONS ───────────────────────────────────────
+const TX = {
+  fr: {
+    'hdr-hello':'Bonjour','btn-logout':'🔒 Déconnexion',
+    't-home':'Accueil','t-new':'Nouveau RDV','t-hist':'Mes RDV','t-drivers':'Mes Chauffeurs','t-prof':'Mon Profil',
+    'role-transporter':'🚛 Transporteur','role-driver':'🚗 Chauffeur','role-admin':'👑 Admin',
+    'lang-toggle':'🇪🇸',
+    // Home
+    'next-rdv-label':'🚛 Prochain rendez-vous',
+    'no-rdv-txt':'Aucun rendez-vous à venir',
+    'take-rdv':'✚ Prendre un RDV',
+    'stat-upcoming':'RDV à venir','stat-tonnage':'Tonnage ce mois','stat-waitlist':'En attente','stat-penalty':'Points de pénalité',
+    'next-rdvs-title':'Prochains rendez-vous','see-all':'Voir tout',
+    'quick-new':'✚ Nouveau rendez-vous','quick-drivers':'👥 Gérer mes chauffeurs','quick-hist':'📋 Voir mes RDV',
+    // Pénalité
+    'pen-danger-title':'⚠️ Compte en alerte — risque de suspension',
+    'pen-warn-title':'⚠️ Avertissement — score de pénalités élevé',
+    'pen-score':'Score actuel :','pen-noshow':'Non-venues :','pen-late':'Retards :','pen-partial':'Chargements incomplets :',
+    'pen-danger-msg':'Votre compte peut être suspendu. Contactez Sojalim au 05 62 96 00 00 dès que possible.',
+    'pen-warn-msg':'Au-delà de 5 points, votre compte peut être suspendu. Contactez-nous en cas de contestation.',
+    'pen-contact':'📞 Nous contacter',
+    // Nouveau RDV
+    'step-date':'Date','step-slot':'Créneau','step-info':'Infos',
+    'choose-date':'📅 Choisissez votre date',
+    'closed-holiday':'⚠️ Jour férié — Sojalim est fermé.',
+    'closed-weekend':'⚠️ Sojalim est fermé le week-end.',
+    'slots-title':'🕐 Créneaux disponibles',
+    'slots-legend':'🟢 Disponible · ⬛ Sélectionné · ⬜ Pris',
+    'cap-warn':'⚠️ Capacité atteinte — votre RDV sera en liste d\'attente.',
+    'info-title':'📝 Informations du chargement',
+    'f-dn':'Nom du chauffeur *','f-dp':'Téléphone chauffeur *','f-tp':'Immatriculation *',
+    'f-lt':'Type de chargement *','f-to':'Tonnage (T) *','f-on':'Bon de commande *','f-no':'Notes',
+    'btn-confirm':'Confirmer le rendez-vous →','btn-waitlist':'Rejoindre la liste d\'attente →',
+    'required-fields':'Tous les champs * sont obligatoires.',
+    'conf-title-ok':'Rendez-vous confirmé !','conf-title-wl':'Liste d\'attente',
+    'conf-email':'📧 Confirmation envoyée à',
+    'btn-another':'Prendre un autre rendez-vous',
+    'f-ref':'Référence','f-date':'Date','f-slot':'Créneau',
+    'f-driver':'Chauffeur','f-phone':'Tél.','f-plate':'Plaque',
+    'f-load':'Chargement','f-tonnage':'Tonnage','f-order':'Bon de cmd',
+    'hint-opendays':'📌 Lundi–Vendredi · 5h00–16h00 · Jours fériés bloqués automatiquement',
+    // Historique
+    'hist-title':'Mes rendez-vous',
+    'filter-upcoming':'📅 À venir','filter-past':'✅ Passés','filter-cancelled':'❌ Annulés','filter-all':'Tous',
+    'no-rdv-here':'Aucun rendez-vous ici.',
+    'status-confirmed':'✅ Confirmé','status-waitlist':'⏳ Attente','status-cancelled':'❌ Annulé',
+    'btn-cancel-rdv':'❌ Annuler ce RDV','confirm-cancel':'Confirmer l\'annulation ?',
+    'df-driver':'Chauffeur','df-phone':'Téléphone','df-plate':'Plaque','df-load':'Chargement',
+    'df-tonnage':'Tonnage','df-order':'Bon de cmd','df-company':'Société','df-notes':'Notes','df-ref':'Référence',
+    // Chauffeurs
+    'drv-title':'Mes Chauffeurs','drv-invite-btn':'+ Inviter un chauffeur',
+    'drv-empty':'Aucun chauffeur encore.\nInvitez vos chauffeurs pour qu\'ils puissent prendre des RDV directement.',
+    'drv-active':'✅ Actif','drv-pending':'⏳ En attente','drv-disabled':'🔴 Désactivé',
+    'drv-disable':'Désactiver','drv-enable':'Réactiver',
+    'inv-title':'✉️ Inviter un chauffeur',
+    'inv-desc':'Le chauffeur reçoit un lien par email pour créer son compte. Il pourra prendre des RDV directement.',
+    'inv-email':'Email du chauffeur *','inv-note':'Note (optionnel)',
+    'inv-send':'✉️ Envoyer l\'invitation','inv-cancel':'Annuler',
+    'inv-ok':'✅ Invitation envoyée à',
+    'confirm-disable':'Désactiver ce chauffeur ?',
+    // Profil
+    'prof-title':'Mon Profil',
+    'p-fn':'Prénom','p-ln':'Nom','p-co':'Société','p-ph':'Téléphone',
+    'p-si':'SIRET','p-em':'Email','p-ad':'Adresse','p-pw':'Nouveau mot de passe',
+    'p-pw-hint':'Laisser vide = inchangé',
+    'p-save':'Enregistrer les modifications',
+    'p-ok':'✅ Profil mis à jour !',
+    'p-incidents':'⚠️ Historique des incidents',
+    'p-score':'Score :','p-noshow':'Non-venues :','p-lates':'Retards :','p-partial':'Charg. incomplets :',
+    'p-contest':'En cas de contestation, contactez-nous au',
+  },
+  es: {
+    'hdr-hello':'Hola','btn-logout':'🔒 Cerrar sesión',
+    't-home':'Inicio','t-new':'Nueva Cita','t-hist':'Mis Citas','t-drivers':'Mis Chóferes','t-prof':'Mi Perfil',
+    'role-transporter':'🚛 Transportista','role-driver':'🚗 Chófer','role-admin':'👑 Admin',
+    'lang-toggle':'🇫🇷',
+    'next-rdv-label':'🚛 Próxima cita',
+    'no-rdv-txt':'No hay citas próximas',
+    'take-rdv':'✚ Reservar una cita',
+    'stat-upcoming':'Citas próximas','stat-tonnage':'Tonelaje este mes','stat-waitlist':'En espera','stat-penalty':'Puntos de penalización',
+    'next-rdvs-title':'Próximas citas','see-all':'Ver todo',
+    'quick-new':'✚ Nueva cita','quick-drivers':'👥 Gestionar chóferes','quick-hist':'📋 Ver mis citas',
+    'pen-danger-title':'⚠️ Cuenta en alerta — riesgo de suspensión',
+    'pen-warn-title':'⚠️ Advertencia — puntuación de penalización elevada',
+    'pen-score':'Puntuación actual :','pen-noshow':'No presentados :','pen-late':'Retrasos :','pen-partial':'Cargas incompletas :',
+    'pen-danger-msg':'Su cuenta puede ser suspendida. Contacte Sojalim al 05 62 96 00 00 lo antes posible.',
+    'pen-warn-msg':'A partir de 5 puntos, su cuenta puede ser suspendida. Contáctenos en caso de impugnación.',
+    'pen-contact':'📞 Contactarnos',
+    'step-date':'Fecha','step-slot':'Horario','step-info':'Datos',
+    'choose-date':'📅 Elija su fecha',
+    'closed-holiday':'⚠️ Día festivo — Sojalim está cerrado.',
+    'closed-weekend':'⚠️ Sojalim está cerrado el fin de semana.',
+    'slots-title':'🕐 Horarios disponibles',
+    'slots-legend':'🟢 Disponible · ⬛ Seleccionado · ⬜ Ocupado',
+    'cap-warn':'⚠️ Capacidad máxima alcanzada — su cita quedará en lista de espera.',
+    'info-title':'📝 Datos de la carga',
+    'f-dn':'Nombre del chófer *','f-dp':'Teléfono del chófer *','f-tp':'Matrícula *',
+    'f-lt':'Tipo de carga *','f-to':'Tonelaje (T) *','f-on':'Número de pedido *','f-no':'Notas',
+    'btn-confirm':'Confirmar la cita →','btn-waitlist':'Unirse a la lista de espera →',
+    'required-fields':'Todos los campos * son obligatorios.',
+    'conf-title-ok':'¡Cita confirmada!','conf-title-wl':'Lista de espera',
+    'conf-email':'📧 Confirmación enviada a',
+    'btn-another':'Reservar otra cita',
+    'f-ref':'Referencia','f-date':'Fecha','f-slot':'Horario',
+    'f-driver':'Chófer','f-phone':'Tel.','f-plate':'Matrícula',
+    'f-load':'Tipo carga','f-tonnage':'Tonelaje','f-order':'Nº pedido',
+    'hint-opendays':'📌 Lunes–Viernes · 5h00–16h00 · Festivos bloqueados automáticamente',
+    'hist-title':'Mis citas',
+    'filter-upcoming':'📅 Próximas','filter-past':'✅ Pasadas','filter-cancelled':'❌ Canceladas','filter-all':'Todas',
+    'no-rdv-here':'No hay citas aquí.',
+    'status-confirmed':'✅ Confirmada','status-waitlist':'⏳ Espera','status-cancelled':'❌ Cancelada',
+    'btn-cancel-rdv':'❌ Cancelar esta cita','confirm-cancel':'¿Confirmar la cancelación?',
+    'df-driver':'Chófer','df-phone':'Teléfono','df-plate':'Matrícula','df-load':'Tipo de carga',
+    'df-tonnage':'Tonelaje','df-order':'Nº pedido','df-company':'Empresa','df-notes':'Notas','df-ref':'Referencia',
+    'drv-title':'Mis Chóferes','drv-invite-btn':'+ Invitar un chófer',
+    'drv-empty':'Ningún chófer todavía.\nInvite a sus chóferes para que puedan reservar citas directamente.',
+    'drv-active':'✅ Activo','drv-pending':'⏳ Pendiente','drv-disabled':'🔴 Desactivado',
+    'drv-disable':'Desactivar','drv-enable':'Reactivar',
+    'inv-title':'✉️ Invitar a un chófer',
+    'inv-desc':'El chófer recibe un enlace por correo para crear su cuenta. Podrá reservar citas directamente.',
+    'inv-email':'Email del chófer *','inv-note':'Nota (opcional)',
+    'inv-send':'✉️ Enviar invitación','inv-cancel':'Cancelar',
+    'inv-ok':'✅ Invitación enviada a',
+    'confirm-disable':'¿Desactivar este chófer?',
+    'prof-title':'Mi Perfil',
+    'p-fn':'Nombre','p-ln':'Apellido','p-co':'Empresa','p-ph':'Teléfono',
+    'p-si':'SIRET / CIF','p-em':'Correo electrónico','p-ad':'Dirección','p-pw':'Nueva contraseña',
+    'p-pw-hint':'Dejar vacío = sin cambio',
+    'p-save':'Guardar los cambios',
+    'p-ok':'✅ ¡Perfil actualizado!',
+    'p-incidents':'⚠️ Historial de incidencias',
+    'p-score':'Puntuación :','p-noshow':'No presentados :','p-lates':'Retrasos :','p-partial':'Cargas incompl. :',
+    'p-contest':'Para impugnar, contáctenos al',
+  }
+};
+function T(key){ return (TX[LANG]||TX.fr)[key] || key; }
+
+// ── INIT ──────────────────────────────────────────────
 let _u=null,_appts=[],_cl=[],_sett={maxTrucks:20},_drivers=[],_score=null;
 let _step=1,_date='',_slot='',_hf='upcoming',_activeTab='home';
 
 async function init(){
   _u=Auth.require(['transporter','driver']);
   if(!_u)return;
+  applyLang();
   document.getElementById('uname').textContent=_u.first_name;
-  const roleLabels={transporter:'🚛 Transporteur',driver:'🚗 Chauffeur'};
-  document.getElementById('hdr-role').textContent=roleLabels[_u.role]||'';
-
-  if(_u.role==='transporter'){
-    document.getElementById('tn-drivers').style.display='';
-  }
+  const roleKey='role-'+_u.role;
+  document.getElementById('hdr-role').textContent=T(roleKey);
+  if(_u.role==='transporter') document.getElementById('tn-drivers').style.display='';
 
   const[appts,cl,sett,score]=await Promise.all([
     (_u.role==='transporter'?RDV.getTransporterAppts(_u.id):RDV.getUserAppts(_u.id)).catch(()=>[]),
@@ -77,70 +205,72 @@ async function init(){
   if(_u.role==='transporter'){
     _drivers=await SB.select('users',{parent_id:`eq.${_u.id}`,role:'eq.driver',select:'id,email,first_name,last_name,phone,status,created_at'}).catch(()=>[]);
   }
-
-  // Affiche banner pénalité si nécessaire
   renderPenaltyBanner();
   showTab('home');
 }
 
-function renderPenaltyBanner(){
-  if(!_score||_score.alert_level==='ok')return;
-  const banner=document.getElementById('penalty-banner');
-  const isDanger=_score.alert_level==='danger';
-  banner.innerHTML=`
-    <div style="max-width:1000px;margin:.5rem auto;padding:0 1.5rem">
-      <div class="penalty-banner ${_score.alert_level}">
-        <div style="font-size:1.8rem">${isDanger?'🔴':'🟠'}</div>
-        <div style="flex:1">
-          <div style="font-weight:700;color:${isDanger?'var(--red)':'var(--orange)'};font-size:.95rem">
-            ${isDanger?'⚠️ Compte en alerte — risque de suspension':'⚠️ Avertissement — score de pénalités élevé'}
-          </div>
-          <div style="font-size:.85rem;color:var(--sub);margin-top:.2rem">
-            Score actuel : <strong>${_score.total_penalty} point(s)</strong> · 
-            Non-venues : ${_score.no_shows} · Retards : ${_score.lates} · 
-            Chargements incomplets : ${_score.partial_loads}
-          </div>
-          <div style="font-size:.82rem;color:var(--sub);margin-top:.2rem">
-            ${isDanger?'Votre compte peut être suspendu. Contactez Sojalim au 05 62 96 00 00 dès que possible.':'Au-delà de 5 points, votre compte peut être suspendu. Contactez-nous en cas de contestation.'}
-          </div>
-        </div>
-        <a href="tel:0562960000" class="btn btn--sm" style="background:${isDanger?'var(--red)':'var(--orange)'};color:white;flex-shrink:0">📞 Nous contacter</a>
-      </div>
-    </div>`;
+function applyLang(){
+  document.documentElement.lang=LANG;
+  // Boutons header
+  const lo=document.getElementById('btn-logout');if(lo)lo.textContent=T('btn-logout');
+  const lt=document.getElementById('lang-toggle');if(lt)lt.textContent=T('lang-toggle');
+  // Tabs
+  ['home','new','hist','drivers','prof'].forEach(k=>{
+    const el=document.getElementById('t-'+k);if(el)el.textContent=T('t-'+k);
+  });
 }
 
 function showTab(tab){
   _activeTab=tab;
   ['home','new','hist','drivers','prof'].forEach(t=>{
-    const el=document.getElementById('tab-'+t);
-    if(el)el.style.display=t===tab?'block':'none';
-    const btn=document.getElementById('tn-'+t);
-    if(btn)btn.classList.toggle('on',t===tab);
+    const el=document.getElementById('tab-'+t);if(el)el.style.display=t===tab?'block':'none';
+    const btn=document.getElementById('tn-'+t);if(btn)btn.classList.toggle('on',t===tab);
   });
   const renders={home:renderHome,new:renderNew,hist:renderHist,drivers:renderDrivers,prof:renderProf};
   if(renders[tab])renders[tab]();
 }
 
-// ── ACCUEIL ──────────────────────────────────────────
+// ── BANNER PÉNALITÉ ───────────────────────────────────
+function renderPenaltyBanner(){
+  if(!_score||_score.alert_level==='ok')return;
+  const isDanger=_score.alert_level==='danger';
+  document.getElementById('penalty-banner').innerHTML=`
+    <div style="max-width:1000px;margin:.5rem auto;padding:0 1.5rem">
+      <div class="penalty-banner ${_score.alert_level}">
+        <div style="font-size:1.8rem">${isDanger?'🔴':'🟠'}</div>
+        <div style="flex:1">
+          <div style="font-weight:700;color:${isDanger?'var(--red)':'var(--orange)'};font-size:.95rem">${T(isDanger?'pen-danger-title':'pen-warn-title')}</div>
+          <div style="font-size:.85rem;color:var(--sub);margin-top:.2rem">
+            ${T('pen-score')} <strong>${_score.total_penalty} pt</strong> · 
+            ${T('pen-noshow')} ${_score.no_shows} · 
+            ${T('pen-late')} ${_score.lates} · 
+            ${T('pen-partial')} ${_score.partial_loads}
+          </div>
+          <div style="font-size:.82rem;color:var(--sub);margin-top:.2rem">${T(isDanger?'pen-danger-msg':'pen-warn-msg')}</div>
+        </div>
+        <a href="tel:0562960000" class="btn btn--sm" style="background:${isDanger?'var(--red)':'var(--orange)'};color:white;flex-shrink:0">${T('pen-contact')}</a>
+      </div>
+    </div>`;
+}
+
+// ── ACCUEIL ───────────────────────────────────────────
 function renderHome(){
-  const c=document.getElementById('tab-home');
-  const now=todayStr();
+  const c=document.getElementById('tab-home'),now=todayStr();
   const upcoming=_appts.filter(a=>a.date>=now&&a.status==='confirmed').sort((a,b)=>a.date.localeCompare(b.date)||a.slot.localeCompare(b.slot));
   const nextRdv=upcoming[0]||null;
   const thisMonth=_appts.filter(a=>a.status==='confirmed'&&a.date?.startsWith(now.slice(0,7)));
   const totalTonn=thisMonth.reduce((s,a)=>s+parseFloat(a.tonnage||0),0);
   const waitlist=_appts.filter(a=>a.status==='waitlist'&&a.date>=now);
-
   c.innerHTML=`
     ${nextRdv?`
     <div class="next-rdv">
       <div>
-        <div class="next-rdv__label">🚛 Prochain rendez-vous</div>
+        <div class="next-rdv__label">${T('next-rdv-label')}</div>
         <div class="next-rdv__date">${fmtDate(nextRdv.date)}</div>
         <div class="next-rdv__info">${nextRdv.slot} – ${addMins(nextRdv.slot,30)} · ${nextRdv.truck_plate} · ${nextRdv.load_type} · ${nextRdv.tonnage}T</div>
       </div>
       <div style="text-align:right">
-        <div class="next-rdv__label">Référence</div>
+        <div class="next-rdv__label">${T('f-ref')}</div>
         <div class="next-rdv__ref">${nextRdv.id}</div>
         <div style="margin-top:.5rem"><span style="color:rgba(245,240,232,.7);font-size:.82rem">👤 ${nextRdv.driver_name}</span></div>
       </div>
@@ -148,112 +278,88 @@ function renderHome(){
     <div class="next-rdv" style="justify-content:center;text-align:center">
       <div>
         <div style="font-size:2rem;margin-bottom:.5rem">📭</div>
-        <div style="color:rgba(245,240,232,.8);font-size:.95rem;margin-bottom:.8rem">Aucun rendez-vous à venir</div>
-        <button class="btn btn--g btn--sm" onclick="showTab('new')">✚ Prendre un RDV</button>
+        <div style="color:rgba(245,240,232,.8);font-size:.95rem;margin-bottom:.8rem">${T('no-rdv-txt')}</div>
+        <button class="btn btn--g btn--sm" onclick="showTab('new')">${T('take-rdv')}</button>
       </div>
     </div>`}
-
-    <!-- Stats rapides -->
     <div class="dash-stats">
-      <div class="stat-card" style="border-color:#27ae60">
-        <div class="stat-card__icon">✅</div>
-        <div class="stat-card__val" style="color:#27ae60">${upcoming.length}</div>
-        <div class="stat-card__lbl">RDV à venir</div>
-      </div>
-      <div class="stat-card" style="border-color:var(--gold)">
-        <div class="stat-card__icon">⚖️</div>
-        <div class="stat-card__val" style="color:var(--gold)">${totalTonn.toFixed(0)}T</div>
-        <div class="stat-card__lbl">Tonnage ce mois</div>
-      </div>
-      <div class="stat-card" style="border-color:var(--orange)">
-        <div class="stat-card__icon">⏳</div>
-        <div class="stat-card__val" style="color:var(--orange)">${waitlist.length}</div>
-        <div class="stat-card__lbl">En liste d'attente</div>
-      </div>
+      <div class="stat-card" style="border-color:#27ae60"><div class="stat-card__icon">✅</div><div class="stat-card__val" style="color:#27ae60">${upcoming.length}</div><div class="stat-card__lbl">${T('stat-upcoming')}</div></div>
+      <div class="stat-card" style="border-color:var(--gold)"><div class="stat-card__icon">⚖️</div><div class="stat-card__val" style="color:var(--gold)">${totalTonn.toFixed(0)}T</div><div class="stat-card__lbl">${T('stat-tonnage')}</div></div>
+      <div class="stat-card" style="border-color:var(--orange)"><div class="stat-card__icon">⏳</div><div class="stat-card__val" style="color:var(--orange)">${waitlist.length}</div><div class="stat-card__lbl">${T('stat-waitlist')}</div></div>
       <div class="stat-card" style="border-color:${_score?.alert_level==='danger'?'var(--red)':_score?.alert_level==='warning'?'var(--orange)':'var(--mid)'}">
         <div class="stat-card__icon">${_score?.alert_level==='danger'?'🔴':_score?.alert_level==='warning'?'🟠':'✅'}</div>
         <div class="stat-card__val" style="color:${_score?.alert_level==='danger'?'var(--red)':_score?.alert_level==='warning'?'var(--orange)':'var(--mid)'}">${_score?.total_penalty||0}</div>
-        <div class="stat-card__lbl">Points de pénalité</div>
+        <div class="stat-card__lbl">${T('stat-penalty')}</div>
       </div>
     </div>
-
-    <!-- Prochains RDV -->
     ${upcoming.length>0?`
-    <div class="section-hdr"><h2>Prochains rendez-vous</h2><button class="btn btn--o btn--sm" onclick="showTab('hist')">Voir tout</button></div>
-    ${upcoming.slice(0,5).map(a=>{
+    <div class="section-hdr"><h2>${T('next-rdvs-title')}</h2><button class="btn btn--o btn--sm" onclick="showTab('hist')">${T('see-all')}</button></div>
+    ${upcoming.slice(0,4).map(a=>{
       const did='h'+a.id.replace(/[^a-z0-9]/gi,'');
       return`<div class="appt">
         <div class="appt__hd" onclick="toggleDetail('${did}')">
           <div class="appt__slot">${a.slot.slice(0,5)}</div>
-          <div class="appt__info"><div class="appt__title">${fmtDate(a.date)}</div><div class="appt__sub">🚛 ${a.truck_plate} · 🫘 ${a.load_type} · ⚖️ ${a.tonnage}T · 📋 ${a.order_number}</div></div>
+          <div class="appt__info"><div class="appt__title">${fmtDate(a.date)}</div><div class="appt__sub">🚛 ${a.truck_plate} · 🫘 ${a.load_type} · ⚖️ ${a.tonnage}T</div></div>
           <span style="color:#27ae60;font-size:.8rem;font-weight:700">✅</span>
           <span style="color:var(--muted);margin-left:.4rem">▼</span>
         </div>
         <div class="appt__detail" id="${did}">
           <div class="appt__grid">
-            ${[['Chauffeur',a.driver_name],['Téléphone',a.driver_phone||'—'],['Plaque',a.truck_plate],['Chargement',a.load_type],['Tonnage',a.tonnage+'T'],['Bon de cmd',a.order_number],['Société',a.company_name||'—'],['Notes',a.notes||'—'],['Référence',a.id]].map(([l,v])=>`<div><span class="df__l">${l}</span><span class="df__v">${v}</span></div>`).join('')}
+            ${[[T('df-driver'),a.driver_name],[T('df-phone'),a.driver_phone||'—'],[T('df-plate'),a.truck_plate],[T('df-load'),a.load_type],[T('df-tonnage'),a.tonnage+'T'],[T('df-order'),a.order_number],[T('df-company'),a.company_name||'—'],[T('df-notes'),a.notes||'—'],[T('df-ref'),a.id]].map(([l,v])=>`<div><span class="df__l">${l}</span><span class="df__v">${v}</span></div>`).join('')}
           </div>
-          ${a.date>=now?`<button class="btn btn--r btn--sm" onclick="cancelAppt('${a.id}')">❌ Annuler ce RDV</button>`:''}
+          ${a.date>=now?`<button class="btn btn--r btn--sm" onclick="cancelAppt('${a.id}')">${T('btn-cancel-rdv')}</button>`:''}
         </div>
       </div>`;
     }).join('')}`:''}
-
-    <!-- Actions rapides -->
     <div class="g2" style="margin-top:1.5rem">
-      <button class="btn btn--p" style="padding:1.2rem;font-size:1rem;justify-content:center" onclick="showTab('new')">✚ Nouveau rendez-vous</button>
-      ${_u.role==='transporter'?`<button class="btn btn--o" style="padding:1.2rem;font-size:1rem;justify-content:center" onclick="showTab('drivers')">👥 Gérer mes chauffeurs</button>`:`<button class="btn btn--o" style="padding:1.2rem;font-size:1rem;justify-content:center" onclick="showTab('hist')">📋 Voir mes RDV</button>`}
+      <button class="btn btn--p" style="padding:1.2rem;font-size:1rem;justify-content:center" onclick="showTab('new')">${T('quick-new')}</button>
+      ${_u.role==='transporter'?`<button class="btn btn--o" style="padding:1.2rem;font-size:1rem;justify-content:center" onclick="showTab('drivers')">${T('quick-drivers')}</button>`:`<button class="btn btn--o" style="padding:1.2rem;font-size:1rem;justify-content:center" onclick="showTab('hist')">${T('quick-hist')}</button>`}
     </div>`;
 }
 
 // ── NOUVEAU RDV ───────────────────────────────────────
 function renderNew(){
-  const c=document.getElementById('tab-new');
-  const now=todayStr();
+  const c=document.getElementById('tab-new'),now=todayStr();
   const da=_date?_appts.filter(a=>a.date===_date&&a.status!=='cancelled'):[];
   const taken=da.map(a=>a.slot.slice(0,5));
   const cap=da.filter(a=>a.status==='confirmed').length>=_sett.maxTrucks;
   const open=isDayOpen(_date,_cl);
-
+  const cl_reason=_cl.find(cl=>cl.date===_date);
   c.innerHTML=`
-    <div class="section-hdr"><h2>Nouveau rendez-vous</h2></div>
     <div class="stepper">
-      <div class="step ${_step>1?'done':_step===1?'now':''}"><div class="step__ico">📅</div><div class="step__lbl">Date</div></div>
-      <div class="step ${_step>2?'done':_step===2?'now':''}"><div class="step__ico">🕐</div><div class="step__lbl">Créneau</div></div>
-      <div class="step ${_step===3?'now':''}"><div class="step__ico">📝</div><div class="step__lbl">Infos</div></div>
+      <div class="step ${_step>1?'done':_step===1?'now':''}"><div class="step__ico">📅</div><div class="step__lbl">${T('step-date')}</div></div>
+      <div class="step ${_step>2?'done':_step===2?'now':''}"><div class="step__ico">🕐</div><div class="step__lbl">${T('step-slot')}</div></div>
+      <div class="step ${_step===3?'now':''}"><div class="step__ico">📝</div><div class="step__lbl">${T('step-info')}</div></div>
     </div>
     <div class="card">
-      <h3>📅 Choisissez votre date</h3>
+      <h3>${T('choose-date')}</h3>
       <div class="field" style="max-width:260px;margin-bottom:.8rem">
         <input class="inp" type="date" id="rdv-date" value="${_date}" min="${now}" onchange="changeDate(this.value)"/>
       </div>
-      ${_date&&!open?`<div class="al al--e">${HOLIDAYS.has(_date)?'⚠️ Jour férié — Sojalim est fermé.':_cl.find(c=>c.date===_date)?'⚠️ Fermeture : '+_cl.find(c=>c.date===_date).reason:'⚠️ Sojalim est fermé le week-end.'}</div>`:''}
-      ${_date&&open&&cap?'<div class="al al--w">⚠️ Capacité atteinte — votre RDV sera en liste d\'attente.</div>':''}
-      <p class="muted" style="margin-top:.4rem">📌 Lundi–Vendredi · 5h00–16h00 · Jours fériés bloqués automatiquement</p>
-
+      ${_date&&!open?`<div class="al al--e">${HOLIDAYS.has(_date)?T('closed-holiday'):cl_reason?'⚠️ '+(LANG==='es'?'Cierre':'Fermeture')+' : '+cl_reason.reason:T('closed-weekend')}</div>`:''}
+      ${_date&&open&&cap?`<div class="al al--w">${T('cap-warn')}</div>`:''}
+      <p class="muted" style="margin-top:.4rem">${T('hint-opendays')}</p>
       ${_step>=2&&_date&&open?`
       <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1.5rem">
-        <h3>🕐 Créneaux disponibles — ${fmtDate(_date)}</h3>
-        <div class="slots mb">
-          ${SLOTS.map(s=>`<button class="slot ${taken.includes(s)?'taken':_slot===s?'selected':''}" ${taken.includes(s)?'disabled':''} onclick="pickSlot('${s}')">${s}</button>`).join('')}
-        </div>
-        <p class="muted">🟢 Disponible · ⬛ Sélectionné · ⬜ Pris</p>
+        <h3>${T('slots-title')} — ${fmtDate(_date)}</h3>
+        <div class="slots mb">${SLOTS.map(s=>`<button class="slot ${taken.includes(s)?'taken':_slot===s?'selected':''}" ${taken.includes(s)?'disabled':''} onclick="pickSlot('${s}')">${s}</button>`).join('')}</div>
+        <p class="muted">${T('slots-legend')}</p>
       </div>`:''}
-
       ${_step>=3&&_slot?`
       <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1.5rem">
-        <h3>📝 Informations du chargement</h3>
+        <h3>${T('info-title')}</h3>
         <div class="al al--s mb">✅ ${fmtDate(_date)} · ${_slot} – ${addMins(_slot,30)}</div>
         <div class="fg">
-          <div class="field"><label class="lbl">Nom du chauffeur *</label><input class="inp" id="f-dn" value="${_u.role==='driver'?_u.first_name+' '+_u.last_name:''}"/></div>
-          <div class="field"><label class="lbl">Téléphone chauffeur *</label><input class="inp" id="f-dp" value="${_u.role==='driver'?_u.phone:''}" placeholder="06 / +34 6XX"/></div>
-          <div class="field"><label class="lbl">Immatriculation *</label><input class="inp" id="f-tp" placeholder="AB-123-CD"/></div>
-          <div class="field"><label class="lbl">Type de chargement *</label><select class="sel" id="f-lt">${LOAD_TYPES.map(lt=>`<option>${lt}</option>`).join('')}</select></div>
-          <div class="field"><label class="lbl">Tonnage (T) *</label><input class="inp" type="number" id="f-to" placeholder="28"/></div>
-          <div class="field"><label class="lbl">Bon de commande *</label><input class="inp" id="f-on" placeholder="BC-2025-XXXXX"/></div>
-          <div class="field s2"><label class="lbl">Notes</label><textarea class="ta" id="f-no"></textarea></div>
+          <div class="field"><label class="lbl">${T('f-dn')}</label><input class="inp" id="f-dn" value="${_u.role==='driver'?_u.first_name+' '+_u.last_name:''}"/></div>
+          <div class="field"><label class="lbl">${T('f-dp')}</label><input class="inp" id="f-dp" value="${_u.role==='driver'?_u.phone:''}" placeholder="06 / +34 6XX"/></div>
+          <div class="field"><label class="lbl">${T('f-tp')}</label><input class="inp" id="f-tp" placeholder="AB-123-CD"/></div>
+          <div class="field"><label class="lbl">${T('f-lt')}</label><select class="sel" id="f-lt">${LOAD_TYPES.map(lt=>`<option>${lt}</option>`).join('')}</select></div>
+          <div class="field"><label class="lbl">${T('f-to')}</label><input class="inp" type="number" id="f-to" placeholder="28"/></div>
+          <div class="field"><label class="lbl">${T('f-on')}</label><input class="inp" id="f-on" placeholder="BC-2025-XXXXX"/></div>
+          <div class="field s2"><label class="lbl">${T('f-no')}</label><textarea class="ta" id="f-no"></textarea></div>
         </div>
         <div id="rdv-al"></div>
-        <button class="btn btn--p btn--fw" style="margin-top:1rem" onclick="submitRdv()">${cap?"Rejoindre la liste d'attente →":"Confirmer le rendez-vous →"}</button>
+        <button class="btn btn--p btn--fw" style="margin-top:1rem" onclick="submitRdv()">${cap?T('btn-waitlist'):T('btn-confirm')}</button>
       </div>`:''}
     </div>`;
 }
@@ -262,19 +368,16 @@ function changeDate(v){
   _date=v;_slot='';
   if(v&&isDayOpen(v,_cl)){
     _step=2;
-    RDV.getDayAppts(v).then(da=>{
-      _appts=_appts.filter(a=>a.date!==v).concat(da);
-      renderNew();
-    });
+    RDV.getDayAppts(v).then(da=>{_appts=_appts.filter(a=>a.date!==v).concat(da);renderNew();});
   }else{_step=1;renderNew();}
 }
 function pickSlot(s){_slot=s;_step=3;renderNew();}
 
 async function submitRdv(){
-  const btn=document.querySelector('[onclick="submitRdv()"]'),done=btnLoading(btn,'Confirmation…');
+  const btn=document.querySelector('[onclick="submitRdv()"]'),done=btnLoading(btn,'…');
   const data={date:_date,slot:_slot,driver_name:$('#f-dn')?.value.trim(),driver_phone:$('#f-dp')?.value.trim(),truck_plate:$('#f-tp')?.value.trim(),load_type:$('#f-lt')?.value,tonnage:$('#f-to')?.value,order_number:$('#f-on')?.value.trim(),notes:$('#f-no')?.value,company_name:_u.company};
   if(!data.driver_name||!data.driver_phone||!data.truck_plate||!data.tonnage||!data.order_number){
-    done();document.getElementById('rdv-al').innerHTML='<div class="al al--e">Tous les champs * sont obligatoires.</div>';return;
+    done();document.getElementById('rdv-al').innerHTML=`<div class="al al--e">${T('required-fields')}</div>`;return;
   }
   try{
     const{appt,status}=await RDV.create(_u,data);
@@ -282,16 +385,16 @@ async function submitRdv(){
     document.getElementById('tab-new').innerHTML=`
       <div class="card" style="background:var(--green);text-align:center;padding:3rem 2rem">
         <div style="font-size:3rem;margin-bottom:1rem">${status==='waitlist'?'⏳':'✅'}</div>
-        <h2 style="color:var(--goldL);font-size:1.8rem;margin-bottom:.5rem">${status==='waitlist'?"Liste d'attente":"Rendez-vous confirmé !"}</h2>
+        <h2 style="color:var(--goldL);font-size:1.8rem;margin-bottom:.5rem">${T(status==='waitlist'?'conf-title-wl':'conf-title-ok')}</h2>
         <div style="background:rgba(255,255,255,.1);border:1px solid rgba(201,168,76,.3);border-radius:10px;padding:1.4rem;margin:1.4rem auto;max-width:440px;text-align:left">
-          <div style="color:var(--goldL);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.35rem">Référence</div>
+          <div style="color:var(--goldL);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.35rem">${T('f-ref')}</div>
           <div style="font-family:monospace;font-size:1.3rem;font-weight:700;color:white;margin-bottom:1rem">${appt.id}</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;font-size:.85rem;color:rgba(245,240,232,.9)">
-            ${[['📅 Date',fmtDate(appt.date)],['🕐 Créneau',`${appt.slot}–${addMins(appt.slot,30)}`],['👤 Chauffeur',appt.driver_name],['📞 Tél.',appt.driver_phone],['🚛 Plaque',appt.truck_plate],['🫘 Chargement',appt.load_type],['⚖️ Tonnage',appt.tonnage+'T'],['📋 Bon de cmd',appt.order_number]].map(([l,v])=>`<div><span style="opacity:.6;display:block;font-size:.7rem">${l}</span><strong>${v}</strong></div>`).join('')}
+            ${[[T('f-date'),fmtDate(appt.date)],[T('f-slot'),`${appt.slot}–${addMins(appt.slot,30)}`],[T('f-driver'),appt.driver_name],[T('f-phone'),appt.driver_phone],[T('f-plate'),appt.truck_plate],[T('f-load'),appt.load_type],[T('f-tonnage'),appt.tonnage+'T'],[T('f-order'),appt.order_number]].map(([l,v])=>`<div><span style="opacity:.6;display:block;font-size:.7rem">${l}</span><strong>${v}</strong></div>`).join('')}
           </div>
         </div>
-        <p style="color:rgba(245,240,232,.6);font-size:.86rem;margin-bottom:1.4rem">📧 Confirmation envoyée à ${_u.email}</p>
-        <button class="btn btn--g" onclick="resetRdv()">Prendre un autre rendez-vous</button>
+        <p style="color:rgba(245,240,232,.6);font-size:.86rem;margin-bottom:1.4rem">${T('conf-email')} ${_u.email}</p>
+        <button class="btn btn--g" onclick="resetRdv()">${T('btn-another')}</button>
       </div>`;
     Email.confirmed(_u,appt);
   }catch(e){done();document.getElementById('rdv-al').innerHTML=`<div class="al al--e">${e.message}</div>`;}
@@ -308,37 +411,38 @@ function renderHist(){
     return true;
   }).sort((a,b)=>_hf==='upcoming'?a.date.localeCompare(b.date):b.date.localeCompare(a.date));
   c.innerHTML=`
-    <div class="section-hdr"><h2>Mes rendez-vous</h2></div>
+    <div class="section-hdr"><h2>${T('hist-title')}</h2></div>
     <div class="flex gap-sm mb" style="flex-wrap:wrap">
-      ${[['upcoming','📅 À venir'],['past','✅ Passés'],['cancelled','❌ Annulés'],['all','Tous']].map(([v,l])=>`<button class="btn btn--pill btn--o ${_hf===v?'on':''}" onclick="_hf='${v}';renderHist()">${l}</button>`).join('')}
+      ${[['upcoming',T('filter-upcoming')],['past',T('filter-past')],['cancelled',T('filter-cancelled')],['all',T('filter-all')]].map(([v,l])=>`<button class="btn btn--pill btn--o ${_hf===v?'on':''}" onclick="_hf='${v}';renderHist()">${l}</button>`).join('')}
     </div>
-    ${list.length===0?`<div class="card tc" style="padding:3rem"><div style="font-size:2.5rem;margin-bottom:1rem">📭</div><p class="muted">Aucun rendez-vous ici.</p><button class="btn btn--p mt" onclick="showTab('new')">Prendre un RDV</button></div>`:
+    ${list.length===0?`<div class="card tc" style="padding:3rem"><div style="font-size:2.5rem;margin-bottom:1rem">📭</div><p class="muted">${T('no-rdv-here')}</p><button class="btn btn--p mt" onclick="showTab('new')">${T('take-rdv')}</button></div>`:
     list.map(a=>{
       const xx=a.status==='cancelled',wl=a.status==='waitlist';
       const sc=xx?'var(--red)':wl?'var(--orange)':'#27ae60';
       const did='d'+a.id.replace(/[^a-z0-9]/gi,'');
+      const statusLabel=xx?T('status-cancelled'):wl?T('status-waitlist'):T('status-confirmed');
       return`<div class="appt">
         <div class="appt__hd" onclick="toggleDetail('${did}')">
           <div class="appt__slot ${xx?'xx':wl?'wl':''}">${a.slot.slice(0,5)}</div>
           <div class="appt__info">
             <div class="appt__title">${fmtDate(a.date)}</div>
-            <div class="appt__sub">🚛 ${a.truck_plate} · 🫘 ${a.load_type} · ⚖️ ${a.tonnage}T · 📋 ${a.order_number}</div>
+            <div class="appt__sub">🚛 ${a.truck_plate} · 🫘 ${a.load_type} · ⚖️ ${a.tonnage}T</div>
           </div>
-          <span style="color:${sc};font-size:.8rem;font-weight:700">${xx?'❌ Annulé':wl?'⏳ Attente':'✅ Confirmé'}</span>
+          <span style="color:${sc};font-size:.8rem;font-weight:700">${statusLabel}</span>
           <span style="color:var(--muted);margin-left:.3rem">▼</span>
         </div>
         <div class="appt__detail" id="${did}">
           <div class="appt__grid">
-            ${[['Chauffeur',a.driver_name],['Téléphone',a.driver_phone||'—'],['Plaque',a.truck_plate],['Chargement',a.load_type],['Tonnage',a.tonnage+'T'],['Bon de cmd',a.order_number],['Société',a.company_name||'—'],['Notes',a.notes||'—'],['Référence',a.id]].map(([l,v])=>`<div><span class="df__l">${l}</span><span class="df__v">${v}</span></div>`).join('')}
+            ${[[T('df-driver'),a.driver_name],[T('df-phone'),a.driver_phone||'—'],[T('df-plate'),a.truck_plate],[T('df-load'),a.load_type],[T('df-tonnage'),a.tonnage+'T'],[T('df-order'),a.order_number],[T('df-company'),a.company_name||'—'],[T('df-notes'),a.notes||'—'],[T('df-ref'),a.id]].map(([l,v])=>`<div><span class="df__l">${l}</span><span class="df__v">${v}</span></div>`).join('')}
           </div>
-          ${!xx&&a.date>=now?`<button class="btn btn--r btn--sm" onclick="cancelAppt('${a.id}')">❌ Annuler ce RDV</button>`:''}
+          ${!xx&&a.date>=now?`<button class="btn btn--r btn--sm" onclick="cancelAppt('${a.id}')">${T('btn-cancel-rdv')}</button>`:''}
         </div>
       </div>`;
     }).join('')}`;
 }
 
 async function cancelAppt(id){
-  if(!confirm('Confirmer l\'annulation ?'))return;
+  if(!confirm(T('confirm-cancel')))return;
   await RDV.cancel(id);
   const a=_appts.find(x=>x.id===id);
   _appts=_appts.map(x=>x.id===id?{...x,status:'cancelled'}:x);
@@ -350,9 +454,9 @@ async function cancelAppt(id){
 function renderDrivers(){
   const c=document.getElementById('tab-drivers');
   c.innerHTML=`
-    <div class="section-hdr"><h2>Mes Chauffeurs</h2><button class="btn btn--p btn--sm" onclick="showInviteDriver()">+ Inviter un chauffeur</button></div>
+    <div class="section-hdr"><h2>${T('drv-title')}</h2><button class="btn btn--p btn--sm" onclick="showInviteDriver()">${T('drv-invite-btn')}</button></div>
     <div id="inv-driver-form"></div>
-    ${_drivers.length===0?`<div class="card tc" style="padding:3rem"><div style="font-size:2.5rem;margin-bottom:1rem">👥</div><p class="muted">Aucun chauffeur encore.<br>Invitez vos chauffeurs pour qu'ils puissent prendre des RDV directement.</p></div>`:
+    ${_drivers.length===0?`<div class="card tc" style="padding:3rem"><div style="font-size:2.5rem;margin-bottom:1rem">👥</div><p class="muted">${T('drv-empty').replace('\n','<br>')}</p></div>`:
     `<div>${_drivers.map(d=>`
       <div class="user-card">
         <div class="user-card__avatar" style="background:var(--blue)">🚗</div>
@@ -360,10 +464,10 @@ function renderDrivers(){
           <div class="user-card__name">${d.first_name} ${d.last_name}</div>
           <div class="user-card__sub">${d.email} · ${d.phone}</div>
         </div>
-        <span class="badge ${d.status==='active'?'badge--g':d.status==='pending'?'badge--o':'badge--r'}">${d.status==='active'?'✅ Actif':d.status==='pending'?'⏳ En attente':'🔴 Désactivé'}</span>
+        <span class="badge ${d.status==='active'?'badge--g':d.status==='pending'?'badge--o':'badge--r'}">${T('drv-'+d.status)}</span>
         <div class="user-card__actions">
-          ${d.status==='active'?`<button class="btn btn--r btn--sm" onclick="disableDriver('${d.id}')">Désactiver</button>`:
-            d.status==='disabled'?`<button class="btn btn--o btn--sm" onclick="enableDriver('${d.id}')">Réactiver</button>`:''}
+          ${d.status==='active'?`<button class="btn btn--r btn--sm" onclick="disableDriver('${d.id}')">${T('drv-disable')}</button>`:
+            d.status==='disabled'?`<button class="btn btn--o btn--sm" onclick="enableDriver('${d.id}')">${T('drv-enable')}</button>`:''}
         </div>
       </div>`).join('')}</div>`}`;
 }
@@ -371,16 +475,16 @@ function renderDrivers(){
 function showInviteDriver(){
   document.getElementById('inv-driver-form').innerHTML=`
     <div class="card card--b mb" style="border:2px solid var(--mid)">
-      <h3 style="margin-bottom:.7rem">✉️ Inviter un chauffeur</h3>
-      <p style="color:var(--sub);font-size:.85rem;margin-bottom:1rem">Le chauffeur reçoit un lien par email pour créer son compte. Il pourra prendre des RDV directement.</p>
+      <h3 style="margin-bottom:.7rem">${T('inv-title')}</h3>
+      <p style="color:var(--sub);font-size:.85rem;margin-bottom:1rem">${T('inv-desc')}</p>
       <div id="inv-d-al"></div>
       <div class="fg">
-        <div class="field"><label class="lbl">Email du chauffeur *</label><input class="inp" id="inv-em" type="email" placeholder="chauffeur@email.fr"/></div>
-        <div class="field"><label class="lbl">Note (optionnel)</label><input class="inp" id="inv-no" placeholder="ex: Camion 40T, frigorifique"/></div>
+        <div class="field"><label class="lbl">${T('inv-email')}</label><input class="inp" id="inv-em" type="email"/></div>
+        <div class="field"><label class="lbl">${T('inv-note')}</label><input class="inp" id="inv-no"/></div>
       </div>
       <div class="flex gap-sm mt">
-        <button class="btn btn--p" onclick="sendDriverInvite()">✉️ Envoyer l'invitation</button>
-        <button class="btn btn--o" onclick="document.getElementById('inv-driver-form').innerHTML=''">Annuler</button>
+        <button class="btn btn--p" onclick="sendDriverInvite()">${T('inv-send')}</button>
+        <button class="btn btn--o" onclick="document.getElementById('inv-driver-form').innerHTML=''">${T('inv-cancel')}</button>
       </div>
     </div>`;
 }
@@ -392,53 +496,51 @@ async function sendDriverInvite(){
   try{
     const inv=await Auth.createInvitation(em,'driver',_u.id,no);
     await Email.inviteDriver(em,inv.token,_u,no);
-    al.innerHTML='<div class="al al--s">✅ Invitation envoyée à '+em+'</div>';
+    al.innerHTML=`<div class="al al--s">${T('inv-ok')} ${em}</div>`;
     document.getElementById('inv-em').value='';document.getElementById('inv-no').value='';
     setTimeout(()=>{document.getElementById('inv-driver-form').innerHTML='';},3000);
   }catch(e){al.innerHTML=`<div class="al al--e">${e.message}</div>`;}
 }
 
 async function disableDriver(id){
-  if(!confirm('Désactiver ce chauffeur ?'))return;
+  if(!confirm(T('confirm-disable')))return;
   await SB.update('users',{id:`eq.${id}`},{status:'disabled'});
-  _drivers=_drivers.map(d=>d.id===id?{...d,status:'disabled'}:d);
-  renderDrivers();
+  _drivers=_drivers.map(d=>d.id===id?{...d,status:'disabled'}:d);renderDrivers();
 }
 async function enableDriver(id){
   await SB.update('users',{id:`eq.${id}`},{status:'active'});
-  _drivers=_drivers.map(d=>d.id===id?{...d,status:'active'}:d);
-  renderDrivers();
+  _drivers=_drivers.map(d=>d.id===id?{...d,status:'active'}:d);renderDrivers();
 }
 
 // ── PROFIL ────────────────────────────────────────────
 function renderProf(){
   const c=document.getElementById('tab-prof'),u=_u;
   c.innerHTML=`
-    <div class="section-hdr"><h2>Mon Profil</h2></div>
+    <div class="section-hdr"><h2>${T('prof-title')}</h2></div>
     <div class="card">
       <div id="pal"></div>
       <div class="fg">
-        <div class="field"><label class="lbl">Prénom</label><input class="inp" id="p-fn" value="${u.first_name||''}"/></div>
-        <div class="field"><label class="lbl">Nom</label><input class="inp" id="p-ln" value="${u.last_name||''}"/></div>
-        <div class="field"><label class="lbl">Société</label><input class="inp" id="p-co" value="${u.company||''}"/></div>
-        <div class="field"><label class="lbl">Téléphone</label><input class="inp" id="p-ph" value="${u.phone||''}"/></div>
-        <div class="field"><label class="lbl">SIRET</label><input class="inp" id="p-si" value="${u.siret||''}"/></div>
-        <div class="field"><label class="lbl">Email</label><input class="inp" type="email" id="p-em" value="${u.email||''}"/></div>
-        <div class="field s2"><label class="lbl">Adresse</label><input class="inp" id="p-ad" value="${u.address||''}"/></div>
-        <div class="field"><label class="lbl">Nouveau mot de passe</label><input class="inp" type="password" id="p-pw" placeholder="Laisser vide = inchangé"/></div>
+        <div class="field"><label class="lbl">${T('p-fn')}</label><input class="inp" id="p-fn" value="${u.first_name||''}"/></div>
+        <div class="field"><label class="lbl">${T('p-ln')}</label><input class="inp" id="p-ln" value="${u.last_name||''}"/></div>
+        <div class="field"><label class="lbl">${T('p-co')}</label><input class="inp" id="p-co" value="${u.company||''}"/></div>
+        <div class="field"><label class="lbl">${T('p-ph')}</label><input class="inp" id="p-ph" value="${u.phone||''}"/></div>
+        <div class="field"><label class="lbl">${T('p-si')}</label><input class="inp" id="p-si" value="${u.siret||''}"/></div>
+        <div class="field"><label class="lbl">${T('p-em')}</label><input class="inp" type="email" id="p-em" value="${u.email||''}"/></div>
+        <div class="field s2"><label class="lbl">${T('p-ad')}</label><input class="inp" id="p-ad" value="${u.address||''}"/></div>
+        <div class="field"><label class="lbl">${T('p-pw')}</label><input class="inp" type="password" id="p-pw" placeholder="${T('p-pw-hint')}"/></div>
       </div>
-      <button class="btn btn--p mt" onclick="saveProf()">Enregistrer les modifications</button>
+      <button class="btn btn--p mt" onclick="saveProf()">${T('p-save')}</button>
     </div>
     ${_score&&_score.total_incidents>0?`
     <div class="card mt">
-      <h3 style="margin-bottom:.8rem">⚠️ Historique des incidents</h3>
+      <h3 style="margin-bottom:.8rem">${T('p-incidents')}</h3>
       <div class="flex gap-sm" style="margin-bottom:1rem;flex-wrap:wrap">
-        <span class="penalty-badge ${_score.alert_level}">Score : ${_score.total_penalty} pt</span>
-        ${_score.no_shows>0?`<span class="badge badge--r">Non-venues : ${_score.no_shows}</span>`:''}
-        ${_score.lates>0?`<span class="badge badge--o">Retards : ${_score.lates}</span>`:''}
-        ${_score.partial_loads>0?`<span class="badge badge--y">Charg. incomplets : ${_score.partial_loads}</span>`:''}
+        <span class="penalty-badge ${_score.alert_level}">${T('p-score')} ${_score.total_penalty} pt</span>
+        ${_score.no_shows>0?`<span class="badge badge--r">${T('p-noshow')} ${_score.no_shows}</span>`:''}
+        ${_score.lates>0?`<span class="badge badge--o">${T('p-lates')} ${_score.lates}</span>`:''}
+        ${_score.partial_loads>0?`<span class="badge badge--y">${T('p-partial')} ${_score.partial_loads}</span>`:''}
       </div>
-      <p style="font-size:.84rem;color:var(--sub)">En cas de contestation, contactez-nous au <a href="tel:0562960000">05 62 96 00 00</a> ou <a href="mailto:contact@sojalim.fr">contact@sojalim.fr</a></p>
+      <p style="font-size:.84rem;color:var(--sub)">${T('p-contest')} <a href="tel:0562960000">05 62 96 00 00</a> · <a href="mailto:contact@sojalim.fr">contact@sojalim.fr</a></p>
     </div>`:''}`;
 }
 
@@ -446,14 +548,14 @@ async function saveProf(){
   const al=document.getElementById('pal');
   try{
     await Auth.updateProfile(_u.id,{
-      first_name:$('#p-fn')?.value.trim(), last_name:$('#p-ln')?.value.trim(),
-      company:$('#p-co')?.value.trim(),    phone:$('#p-ph')?.value.trim(),
-      siret:$('#p-si')?.value.trim(),      email:$('#p-em')?.value.trim(),
-      address:$('#p-ad')?.value.trim(),    password:$('#p-pw')?.value||undefined
+      first_name:$('#p-fn')?.value.trim(),last_name:$('#p-ln')?.value.trim(),
+      company:$('#p-co')?.value.trim(),phone:$('#p-ph')?.value.trim(),
+      siret:$('#p-si')?.value.trim(),email:$('#p-em')?.value.trim(),
+      address:$('#p-ad')?.value.trim(),password:$('#p-pw')?.value||undefined
     });
     _u=Auth.user();
     document.getElementById('uname').textContent=_u.first_name;
-    showAlert(al,'✅ Profil mis à jour !','success');
+    showAlert(al,T('p-ok'),'success');
   }catch(e){showAlert(al,e.message);}
 }
 

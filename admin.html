@@ -11,26 +11,25 @@
 <div class="layout">
   <aside class="sb">
     <div class="sb__brand">
-      <img src="https://www.sanders.fr/wp-content/themes/sanders/dist/assets/logo-header-lv8jqXRJ.svg" alt="Sanders" onerror="this.style.display='none'"/>
-      <img src="https://www.euralis.fr/wp-content/uploads/2021/09/logo.png" alt="Euralis" style="margin-top:.4rem" onerror="this.style.display='none'"/>
+      <div style="color:white;font-family:Georgia,serif;font-size:1rem;font-weight:700">SOJALIM</div>
+      <div style="color:rgba(245,240,232,.5);font-size:.72rem;margin-top:.2rem">Sanders Euralis</div>
       <div class="sb__sub" id="aname">Administrateur</div>
     </div>
     <nav class="sb__nav">
-      <button class="sb__lnk on" onclick="gt('dash')"    id="n-dash">🏠 Tableau de bord</button>
-      <button class="sb__lnk"   onclick="gt('plan')"    id="n-plan">📅 Planning</button>
-      <button class="sb__lnk"   onclick="gt('cal')"     id="n-cal">📆 Calendrier</button>
-      <button class="sb__lnk"   onclick="gt('search')"  id="n-search">🔍 Recherche</button>
-      <button class="sb__lnk"   onclick="gt('users')"   id="n-users">👥 Comptes</button>
-      <button class="sb__lnk"   onclick="gt('invites')" id="n-invites">✉️ Invitations</button>
-      <button class="sb__lnk"   onclick="gt('closures')"id="n-closures">🚫 Fermetures</button>
-      <button class="sb__lnk"   onclick="gt('stats')"   id="n-stats">📊 Statistiques</button>
-      <button class="sb__lnk"   onclick="gt('sett')"    id="n-sett">⚙️ Paramètres</button>
+      <button class="sb__lnk on" onclick="gt('dash')"      id="n-dash">🏠 Tableau de bord</button>
+      <button class="sb__lnk"   onclick="gt('plan')"      id="n-plan">📅 Planning</button>
+      <button class="sb__lnk"   onclick="gt('cal')"       id="n-cal">📆 Calendrier</button>
+      <button class="sb__lnk"   onclick="gt('search')"    id="n-search">🔍 Recherche</button>
+      <button class="sb__lnk"   onclick="gt('users')"     id="n-users">👥 Comptes</button>
+      <button class="sb__lnk"   onclick="gt('invites')"   id="n-invites">✉️ Invitations</button>
+      <button class="sb__lnk"   onclick="gt('incidents')" id="n-incidents">⚠️ Incidents</button>
+      <button class="sb__lnk"   onclick="gt('logs')"      id="n-logs">🔐 Connexions</button>
+      <button class="sb__lnk"   onclick="gt('notes')"     id="n-notes">📝 Notes</button>
+      <button class="sb__lnk"   onclick="gt('closures')"  id="n-closures">🚫 Fermetures</button>
+      <button class="sb__lnk"   onclick="gt('stats')"     id="n-stats">📊 Statistiques</button>
+      <button class="sb__lnk"   onclick="gt('sett')"      id="n-sett">⚙️ Paramètres</button>
     </nav>
     <div class="sb__foot">
-      <div class="pwa-wrap">
-        <button class="btn btn--gh btn--sm pwa-btn" onclick="installPWA(this)" style="display:none;width:100%;border-radius:8px">📲 Installer l'app</button>
-        <div class="pwa-tip"><p style="font-size:.82rem;color:var(--sub)">🤖 Menu ⋮ → Ajouter · 🍎 Partager → Écran d'accueil</p></div>
-      </div>
       <button class="btn btn--gh btn--sm" onclick="Auth.logout()" style="width:100%;border-radius:8px">🔒 Déconnexion</button>
     </div>
   </aside>
@@ -42,7 +41,7 @@
 <script src="js/email.js"></script>
 <script src="js/rdv.js"></script>
 <script>
-let _adm=null,_appts=[],_cl=[],_users=[],_sett={},_invites=[];
+let _adm=null,_appts=[],_cl=[],_users=[],_sett={},_invites=[],_incidents=[],_scores=[];
 let _tab='dash',_pd=todayStr(),_pf='all',_ps='';
 let _cy=new Date().getFullYear(),_cm=new Date().getMonth();
 let _gq='',_gt='all',_uf='all',_us='';
@@ -54,27 +53,28 @@ async function init(){
 }
 
 async function reload(){
-  const[a,c,u,s,i]=await Promise.all([
+  const[a,c,u,s,i,inc,sc]=await Promise.all([
     RDV.getAllAppts().catch(()=>[]),
     RDV.getClosures().catch(()=>[]),
     SB.select('users',{select:'id,email,role,first_name,last_name,company,phone,siret,address,status,parent_id,last_login,created_at',order:'created_at.desc'}).catch(()=>[]),
     RDV.getSettings().catch(()=>({maxTrucks:20})),
     SB.select('invitations',{select:'*',order:'created_at.desc'}).catch(()=>[]),
+    RDV.getAllIncidents().catch(()=>[]),
+    RDV.getAllScores().catch(()=>[]),
   ]);
-  _appts=a;_cl=c;_users=u||[];_sett=s;_invites=i||[];
+  _appts=a;_cl=c;_users=u||[];_sett=s;_invites=i||[];_incidents=inc||[];_scores=sc||[];
 }
 
 function gt(tab){
   _tab=tab;
   document.querySelectorAll('.sb__lnk').forEach(b=>b.classList.remove('on'));
   const nb=document.getElementById('n-'+tab);if(nb)nb.classList.add('on');
-  const c=document.getElementById('ac');
-  c.innerHTML='<div class="loader"><div class="spinner"></div></div>';
-  const fns={dash:rDash,plan:rPlan,cal:rCal,search:rSearch,users:rUsers,invites:rInvites,closures:rClosures,stats:rStats,sett:rSett};
+  document.getElementById('ac').innerHTML='<div class="loader"><div class="spinner"></div></div>';
+  const fns={dash:rDash,plan:rPlan,cal:rCal,search:rSearch,users:rUsers,invites:rInvites,incidents:rIncidents,logs:rLogs,notes:rNotes,closures:rClosures,stats:rStats,sett:rSett};
   setTimeout(()=>{if(fns[tab])fns[tab]();},40);
 }
 
-// ── DASHBOARD ─────────────────────────────────────────
+// ── DASHBOARD ──────────────────────────────────────────
 function rDash(){
   const c=document.getElementById('ac'),now=todayStr();
   const todayOk=_appts.filter(a=>a.date===now&&a.status==='confirmed');
@@ -83,47 +83,97 @@ function rDash(){
   const wl=_appts.filter(a=>a.status==='waitlist');
   const tonn=todayOk.reduce((s,a)=>s+parseFloat(a.tonnage||0),0);
   const pendU=_users.filter(u=>u.status==='pending');
+  const dangerScores=_scores.filter(s=>s.alert_level==='danger');
+  const warnScores=_scores.filter(s=>s.alert_level==='warning');
   c.innerHTML=`
     <h2>Tableau de bord</h2>
     <div class="g3 mb">
-      ${[['📅','RDV aujourd\'hui',todayOk.length,'var(--mid)'],['⚖️','Tonnage aujourd\'hui',tonn.toFixed(0)+'T','var(--gold)'],['⏳','Liste d\'attente',wl.length,'var(--orange)'],['🚛','RDV cette année',yrOk.length,'var(--blue)'],['👥','Transporteurs',_users.filter(u=>u.role==='transporter').length,'var(--light)'],['🔴','En attente approbation',pendU.length,'var(--red)']].map(([ic,lb,val,ac])=>`<div class="card" style="border-left:4px solid ${ac};padding:1.2rem"><div>${ic}</div><div style="font-size:2rem;font-weight:800;color:${ac};line-height:1.1;margin-top:.1rem">${val}</div><div style="font-size:.8rem;color:var(--muted)">${lb}</div></div>`).join('')}
+      ${[['📅','RDV aujourd\'hui',todayOk.length,'#27ae60'],['⚖️','Tonnage aujourd\'hui',tonn.toFixed(0)+'T','var(--gold)'],['⏳','Liste d\'attente',wl.length,'var(--orange)'],['🚛','RDV cette année',yrOk.length,'var(--blue)'],['👥','Transporteurs actifs',_users.filter(u=>u.role==='transporter'&&u.status==='active').length,'var(--mid)'],['🔴','En attente approbation',pendU.length,'var(--red)']].map(([ic,lb,val,ac])=>`
+    <div class="card" style="border-left:4px solid ${ac};padding:1.2rem">
+      <div style="font-size:1.3rem">${ic}</div>
+      <div style="font-size:2rem;font-weight:800;color:${ac};line-height:1.1;margin-top:.1rem">${val}</div>
+      <div style="font-size:.78rem;color:var(--muted)">${lb}</div>
+    </div>`).join('')}
     </div>
-    ${pendU.length>0?`<div class="card card--y mb" style="border:2px solid var(--orange)"><h3 style="color:var(--orange);margin-bottom:1rem">⏳ Approbations en attente (${pendU.length})</h3>${pendU.map(u=>`<div style="display:flex;align-items:center;gap:1rem;padding:.8rem;background:white;border-radius:8px;margin-bottom:.5rem;flex-wrap:wrap"><div style="flex:1;min-width:200px"><div style="font-weight:700;color:var(--green)">${u.first_name} ${u.last_name} — ${u.company}</div><div style="font-size:.82rem;color:var(--sub)">${u.email} · ${u.phone} · <span class="badge role-${u.role}">${u.role}</span></div></div><div class="flex gap-sm"><button class="btn btn--p btn--sm" onclick="approveU('${u.id}')">✅ Approuver</button><button class="btn btn--r btn--sm" onclick="rejectU('${u.id}')">❌ Refuser</button></div></div>`).join('')}</div>`:''}
-    <div class="card"><h3 style="margin-bottom:1rem">Planning du jour — ${fmtDate(now)}</h3>
-    ${todayOk.length===0?'<p class="muted tc" style="padding:2rem">Aucun rendez-vous aujourd\'hui</p>':
-    `<div style="display:flex;flex-direction:column;gap:.4rem">${todayOk.sort((a,b)=>a.slot.localeCompare(b.slot)).map(a=>`<div style="display:flex;gap:.8rem;align-items:center;padding:.6rem .9rem;background:var(--g10);border-radius:8px;flex-wrap:wrap"><strong style="color:var(--mid);min-width:50px">${a.slot.slice(0,5)}</strong><span style="flex:1;font-weight:600">${a.driver_name}</span><span style="color:var(--sub);font-size:.85rem">${a.company_name}</span><span style="color:var(--sub);font-size:.85rem">${a.truck_plate}</span><span style="color:var(--muted);font-size:.82rem">${a.load_type} · ${a.tonnage}T</span></div>`).join('')}</div>`}
-    <button class="btn btn--p btn--sm mt" onclick="gt('plan')">Voir le planning complet →</button></div>`;
+    ${dangerScores.length>0?`
+    <div class="card card--r mb" style="border:2px solid var(--red)">
+      <h3 style="color:var(--red);margin-bottom:.8rem">🔴 Transporteurs en alerte critique (${dangerScores.length})</h3>
+      ${dangerScores.map(s=>`<div style="display:flex;align-items:center;gap:1rem;padding:.7rem 1rem;background:white;border-radius:8px;margin-bottom:.4rem;flex-wrap:wrap">
+        <div style="flex:1"><div style="font-weight:700;color:var(--green)">${s.first_name} ${s.last_name} — ${s.company}</div><div style="font-size:.8rem;color:var(--sub)">${s.email}</div></div>
+        <span class="penalty-badge danger">⚠️ ${s.total_penalty} points</span>
+        <div class="flex gap-sm">
+          <button class="btn btn--r btn--sm" onclick="gt('incidents')">Gérer</button>
+          <button class="btn btn--o btn--sm" onclick="suspendUser('${s.id}')">Suspendre</button>
+        </div>
+      </div>`).join('')}
+    </div>`:''}
+    ${warnScores.length>0?`
+    <div class="card card--y mb">
+      <h3 style="color:var(--orange);margin-bottom:.8rem">🟠 Avertissements (${warnScores.length})</h3>
+      ${warnScores.map(s=>`<div style="display:flex;align-items:center;gap:1rem;padding:.6rem .9rem;background:white;border-radius:8px;margin-bottom:.35rem;flex-wrap:wrap">
+        <div style="flex:1"><div style="font-weight:700;color:var(--green)">${s.first_name} ${s.last_name} — ${s.company}</div></div>
+        <span class="penalty-badge warning">🟠 ${s.total_penalty} points</span>
+      </div>`).join('')}
+    </div>`:''}
+    ${pendU.length>0?`
+    <div class="card card--y mb" style="border:2px solid var(--orange)">
+      <h3 style="color:var(--orange);margin-bottom:.8rem">⏳ Approbations en attente (${pendU.length})</h3>
+      ${pendU.map(u=>`<div style="display:flex;align-items:center;gap:1rem;padding:.7rem 1rem;background:white;border-radius:8px;margin-bottom:.4rem;flex-wrap:wrap">
+        <div style="flex:1"><div style="font-weight:700;color:var(--green)">${u.first_name} ${u.last_name} — ${u.company}</div>
+        <div style="font-size:.8rem;color:var(--sub)">${u.email} · ${u.phone} · <span class="badge role-${u.role}">${u.role}</span></div></div>
+        <div class="flex gap-sm"><button class="btn btn--p btn--sm" onclick="approveU('${u.id}')">✅ Approuver</button><button class="btn btn--r btn--sm" onclick="rejectU('${u.id}')">❌ Refuser</button></div>
+      </div>`).join('')}
+    </div>`:''}
+    <div class="card">
+      <div class="section-hdr"><h3 style="margin:0">Planning du jour — ${fmtDate(now)}</h3><button class="btn btn--o btn--sm" onclick="gt('plan')">Voir complet →</button></div>
+      ${todayOk.length===0?'<p class="muted tc" style="padding:2rem">Aucun rendez-vous aujourd\'hui</p>':
+      `<div style="display:flex;flex-direction:column;gap:.35rem;margin-top:.8rem">
+        ${todayOk.sort((a,b)=>a.slot.localeCompare(b.slot)).map(a=>`
+        <div style="display:flex;gap:.8rem;align-items:center;padding:.55rem .9rem;background:var(--g10);border-radius:8px;flex-wrap:wrap">
+          <strong style="color:var(--mid);min-width:48px">${a.slot.slice(0,5)}</strong>
+          <span style="flex:1;font-weight:600;font-size:.9rem">${a.driver_name}</span>
+          <span style="color:var(--sub);font-size:.83rem">${a.company_name}</span>
+          <span style="color:var(--sub);font-size:.83rem">${a.truck_plate}</span>
+          <span style="color:var(--muted);font-size:.8rem">${a.load_type} · ${a.tonnage}T</span>
+        </div>`).join('')}
+      </div>`}
+    </div>`;
 }
 
-// ── PLANNING ──────────────────────────────────────────
+// ── PLANNING ───────────────────────────────────────────
 function rPlan(){
   const c=document.getElementById('ac');
   const da=_appts.filter(a=>a.date===_pd);
   const filt=da.filter(a=>_pf==='all'||a.status===_pf).filter(a=>!_ps||[a.driver_name,a.company_name,a.truck_plate,a.order_number,a.id].join(' ').toLowerCase().includes(_ps.toLowerCase())).sort((a,b)=>a.slot.localeCompare(b.slot));
   const confToday=da.filter(a=>a.status==='confirmed');
   c.innerHTML=`
-    <div class="flex fxb mb" style="flex-wrap:wrap;gap:.8rem"><h2 style="margin:0">Planning</h2><button class="btn btn--o btn--sm" onclick="printPlan()">🖨 Imprimer</button></div>
-    <div style="display:grid;grid-template-columns:260px 1fr;gap:1.2rem;align-items:start">
+    <div class="section-hdr"><h2>Planning</h2>
+      <div class="flex gap-sm">
+        <button class="btn btn--g btn--sm" onclick="exportPlanningPDF('${_pd}')">📄 Export PDF</button>
+        <button class="btn btn--o btn--sm" onclick="printPlan()">🖨 Impression rapide</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:255px 1fr;gap:1.2rem;align-items:start">
       <div class="card">
         <div class="flex fxb" style="margin-bottom:.8rem">
           <button class="btn btn--o btn--sm" onclick="navD(-1)">◀</button>
-          <input type="date" id="pd" value="${_pd}" style="border:none;font-weight:700;color:var(--green);font-size:.88rem;cursor:pointer;outline:none;font-family:inherit;text-align:center" onchange="_pd=this.value;rPlan()"/>
+          <input type="date" id="pd" value="${_pd}" style="border:none;font-weight:700;color:var(--green);font-size:.86rem;cursor:pointer;outline:none;font-family:inherit;text-align:center" onchange="_pd=this.value;rPlan()"/>
           <button class="btn btn--o btn--sm" onclick="navD(1)">▶</button>
         </div>
-        ${!isDayOpen(_pd,_cl)?'<div class="al al--e" style="font-size:.78rem;padding:.4rem .7rem">⛔ Jour non ouvrable</div>':''}
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin-bottom:.8rem">
-          ${SLOTS.map(s=>{const a=da.find(d=>d.slot.slice(0,5)===s&&d.status!=='cancelled');return`<button onclick="doSlot('${s}')" style="padding:.5rem .4rem;border-radius:6px;border:1.5px solid ${a?'var(--g20)':'var(--border)'};background:${a?'var(--g10)':'white'};color:${a?'var(--mid)':'var(--muted)'};font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">${s}${a?' ✓':''}</button>`;}).join('')}
+        ${!isDayOpen(_pd,_cl)?'<div class="al al--e" style="font-size:.77rem;padding:.4rem .7rem">⛔ Jour non ouvrable</div>':''}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem;margin-bottom:.8rem">
+          ${SLOTS.map(s=>{const a=da.find(d=>d.slot.slice(0,5)===s&&d.status!=='cancelled');return`<button style="padding:.45rem .35rem;border-radius:6px;border:1.5px solid ${a?'var(--g20)':'var(--border)'};background:${a?'var(--g10)':'white'};color:${a?'var(--mid)':'var(--muted)'};font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit">${s}${a?' ✓':''}</button>`;}).join('')}
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.8rem">
-          ${[['✅',da.filter(a=>a.status==='confirmed').length,'#27ae60'],['⏳',da.filter(a=>a.status==='waitlist').length,'var(--orange)'],['❌',da.filter(a=>a.status==='cancelled').length,'var(--red)'],['⚖️',confToday.reduce((s,a)=>s+parseFloat(a.tonnage||0),0).toFixed(0)+'T','var(--gold)']].map(([ic,v,col])=>`<div style="border:1px solid var(--border);border-radius:6px;padding:.5rem;text-align:center"><div style="font-size:.8rem">${ic}</div><div style="font-size:1.1rem;font-weight:800;color:${col}">${v}</div></div>`).join('')}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem">
+          ${[['✅',confToday.length,'#27ae60'],['⏳',da.filter(a=>a.status==='waitlist').length,'var(--orange)'],['❌',da.filter(a=>a.status==='cancelled').length,'var(--red)'],['⚖️',confToday.reduce((s,a)=>s+parseFloat(a.tonnage||0),0).toFixed(0)+'T','var(--gold)']].map(([ic,v,col])=>`<div style="border:1px solid var(--border);border-radius:6px;padding:.45rem;text-align:center"><div>${ic}</div><div style="font-size:1rem;font-weight:800;color:${col}">${v}</div></div>`).join('')}
         </div>
       </div>
       <div class="card">
-        <div class="flex fxb mb" style="flex-wrap:wrap;gap:.5rem">
+        <div class="section-hdr" style="margin-bottom:.9rem">
           <h3 style="margin:0">Rendez-vous (${filt.length})</h3>
           <div class="flex gap-sm" style="flex-wrap:wrap">${[['all','Tous'],['confirmed','✅'],['waitlist','⏳'],['cancelled','❌']].map(([v,l])=>`<button class="btn btn--pill btn--o ${_pf===v?'on':''}" onclick="_pf='${v}';rPlan()">${l}</button>`).join('')}</div>
         </div>
-        <div class="srch mb"><span class="srch-ico">🔍</span><input class="inp srch-inp" value="${_ps}" placeholder="Chauffeur, plaque, BC…" oninput="_ps=this.value;rPlan()"/></div>
+        <div class="srch mb"><span class="srch-ico">🔍</span><input class="inp srch-inp" value="${_ps}" placeholder="Chauffeur, plaque, BC, référence…" oninput="_ps=this.value;rPlan()"/></div>
         ${filt.length===0?'<p class="muted tc" style="padding:1.5rem">Aucun rendez-vous</p>':filt.map(a=>aRow(a)).join('')}
       </div>
     </div>`;
@@ -133,37 +183,98 @@ function aRow(a){
   const xx=a.status==='cancelled',wl=a.status==='waitlist';
   const sc=xx?'var(--red)':wl?'var(--orange)':'#27ae60';
   const did='ar'+a.id.replace(/[^a-z0-9]/gi,'');
-  return`<div style="border:1.5px solid ${xx?'#fde8e8':wl?'#fff3cd':'var(--g20)'};border-radius:9px;overflow:hidden;margin-bottom:.6rem">
-    <div onclick="toggleDetail('${did}')" style="display:flex;align-items:center;padding:.7rem 1rem;gap:.8rem;cursor:pointer;background:${xx?'var(--redbg)':wl?'#fffdf0':'var(--g10)'}">
-      <div style="background:${sc};color:white;border-radius:6px;padding:.25rem .6rem;font-size:.8rem;font-weight:700;flex-shrink:0">${a.slot.slice(0,5)}</div>
-      <div style="flex:1;min-width:0"><div style="font-weight:700;color:var(--green);font-size:.9rem">${a.driver_name} <span style="color:var(--muted);font-weight:400;font-size:.85rem">— ${a.company_name||'—'}</span></div><div style="font-size:.78rem;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🚛 ${a.truck_plate} · 📞 ${a.driver_phone||'—'} · 🫘 ${a.load_type} · ⚖️ ${a.tonnage}T</div></div>
-      <span style="font-size:.72rem;color:var(--muted);font-family:monospace;flex-shrink:0">${a.id}</span>
+  const transpScore=_scores.find(s=>s.id===a.transporter_id);
+  return`<div style="border:1.5px solid ${xx?'#fde8e8':wl?'#fff3cd':'var(--g20)'};border-radius:9px;overflow:hidden;margin-bottom:.55rem">
+    <div onclick="toggleDetail('${did}')" style="display:flex;align-items:center;padding:.65rem 1rem;gap:.8rem;cursor:pointer;background:${xx?'var(--redbg)':wl?'#fffdf0':'var(--g10)'}">
+      <div style="background:${sc};color:white;border-radius:6px;padding:.22rem .6rem;font-size:.78rem;font-weight:700;flex-shrink:0">${a.slot.slice(0,5)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;color:var(--green);font-size:.88rem">${a.driver_name} <span style="color:var(--muted);font-weight:400;font-size:.82rem">— ${a.company_name||'—'}</span>
+          ${transpScore?.alert_level==='danger'?'<span class="badge badge--r" style="margin-left:.4rem">⚠️ Alerte</span>':transpScore?.alert_level==='warning'?'<span class="badge badge--o" style="margin-left:.4rem">🟠</span>':''}
+        </div>
+        <div style="font-size:.76rem;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🚛 ${a.truck_plate} · 📞 ${a.driver_phone||'—'} · 🫘 ${a.load_type} · ⚖️ ${a.tonnage}T</div>
+      </div>
+      <span style="font-size:.7rem;color:var(--muted);font-family:monospace;flex-shrink:0">${a.id}</span>
       <span style="color:var(--muted)">▼</span>
     </div>
-    <div id="${did}" style="display:none;padding:.9rem 1.1rem;background:white;border-top:1px solid var(--border)">
-      <div class="appt__grid" style="margin-bottom:.9rem">
+    <div id="${did}" style="display:none;padding:.85rem 1.1rem;background:white;border-top:1px solid var(--border)">
+      <div class="appt__grid" style="margin-bottom:.85rem">
         ${[['Chauffeur',a.driver_name],['Tél.',a.driver_phone||'—'],['Plaque',a.truck_plate],['Chargement',a.load_type],['Tonnage',a.tonnage+'T'],['Bon de cmd',a.order_number],['Société',a.company_name||'—'],['Notes',a.notes||'—'],['Créé le',fmtDT(a.created_at)]].map(([l,v])=>`<div><span class="df__l">${l}</span><span class="df__v">${v}</span></div>`).join('')}
       </div>
       <div class="flex gap-sm" style="flex-wrap:wrap">
         ${wl?`<button class="btn btn--o btn--sm" onclick="promoteA('${a.id}')">⬆️ Confirmer</button>`:''}
         ${!xx?`<button class="btn btn--r btn--sm" onclick="cancelA('${a.id}')">❌ Annuler</button>`:`<button class="btn btn--o btn--sm" onclick="restoreA('${a.id}')">✅ Restaurer</button>`}
-        ${!xx&&a.user_id?`<button class="btn btn--sm" style="background:#e8f4ff;color:var(--blue);border:1px solid #bee3f8" onclick="remind('${a.id}')">📨 Rappel</button>`:''}
+        ${!xx&&a.user_id?`<button class="btn btn--blue btn--sm" onclick="remindA('${a.id}')">📨 Rappel</button>`:''}
+        ${!xx&&a.transporter_id?`<button class="btn btn--sm" style="background:#fff8e6;color:var(--orange);border:1px solid #ffe082" onclick="showIncForm('${a.id}','${a.transporter_id}','${did}')">⚠️ Incident</button>`:''}
         <button class="btn btn--o btn--sm" onclick="delA('${a.id}')">🗑</button>
       </div>
+      <div id="inc-form-${did}" style="display:none;margin-top:.8rem"></div>
     </div>
   </div>`;
 }
 
+function showIncForm(apptId,userId,did){
+  const el=document.getElementById('inc-form-'+did);if(!el)return;
+  el.style.display='block';
+  el.innerHTML=`
+    <div class="card card--y" style="margin-top:.5rem">
+      <h3 style="margin-bottom:.8rem;color:var(--orange)">⚠️ Signaler un incident</h3>
+      <div class="fg">
+        <div class="field"><label class="lbl">Type *</label>
+          <select class="sel" id="it-${did}" onchange="updPen('${did}')">
+            <option value="no_show">🚫 Non-présentation (2 pts)</option>
+            <option value="late">⏰ Retard (0.5–1 pt)</option>
+            <option value="partial_load">📦 Chargement incomplet (0.5 pt)</option>
+            <option value="other">📝 Autre</option>
+          </select>
+        </div>
+        <div class="field" id="lm-${did}"><label class="lbl">Retard (minutes)</label><input class="inp" type="number" id="ilm-${did}" value="0" min="0" onchange="updPen('${did}')"/></div>
+        <div class="field"><label class="lbl">Points de pénalité</label><input class="inp" type="number" id="ip-${did}" value="2" step="0.5" min="0"/></div>
+        <div class="field"><label class="lbl">Note / Commentaire</label><input class="inp" id="in-${did}" placeholder="Détails…"/></div>
+      </div>
+      <div class="flex gap-sm mt">
+        <button class="btn btn--p btn--sm" onclick="submitInc('${apptId}','${userId}','${did}')">✅ Enregistrer et notifier</button>
+        <button class="btn btn--o btn--sm" onclick="document.getElementById('inc-form-${did}').style.display='none'">Annuler</button>
+      </div>
+    </div>`;
+  document.getElementById('lm-'+did).style.display='none';
+}
+
+function updPen(did){
+  const type=document.getElementById('it-'+did)?.value;
+  const late=parseInt(document.getElementById('ilm-'+did)?.value||'0');
+  const lw=document.getElementById('lm-'+did);
+  const pe=document.getElementById('ip-'+did);
+  if(lw)lw.style.display=type==='late'?'':'none';
+  let pen=type==='no_show'?2:type==='late'?(late>=60?1:0.5):type==='partial_load'?0.5:0;
+  if(pe)pe.value=pen;
+}
+
+async function submitInc(apptId,userId,did){
+  const type=document.getElementById('it-'+did)?.value;
+  const late=parseInt(document.getElementById('ilm-'+did)?.value||'0');
+  const pen=parseFloat(document.getElementById('ip-'+did)?.value||'0');
+  const note=document.getElementById('in-'+did)?.value.trim();
+  try{
+    const inc=await RDV.addIncident(apptId,userId,type,late,note,pen,_adm.id);
+    const user=_users.find(u=>u.id===userId);
+    const score=await RDV.getUserScore(userId);
+    if(user)await Email.penalty(user,{...inc,appointment_id:apptId,total_penalty:score?.total_penalty||pen});
+    document.getElementById('inc-form-'+did).style.display='none';
+    await reload();
+    alert(`✅ Incident enregistré.${user?' '+user.first_name+' a été notifié par email.':''}`);
+    rPlan();
+  }catch(e){alert('Erreur : '+e.message);}
+}
+
 function navD(d){const dt=new Date(_pd+'T12:00:00');dt.setDate(dt.getDate()+d);while(dt.getDay()===0||dt.getDay()===6)dt.setDate(dt.getDate()+d);_pd=dt.toISOString().split('T')[0];rPlan();}
-function doSlot(s){alert('Créneau '+s+' — fonctionnalité de création manuelle RDV');}
 async function cancelA(id){if(!confirm('Annuler ?'))return;await RDV.cancel(id);_appts=_appts.map(a=>a.id===id?{...a,status:'cancelled'}:a);rPlan();}
 async function restoreA(id){await RDV.updateStatus(id,'confirmed');_appts=_appts.map(a=>a.id===id?{...a,status:'confirmed'}:a);rPlan();}
 async function promoteA(id){await RDV.updateStatus(id,'confirmed');_appts=_appts.map(a=>a.id===id?{...a,status:'confirmed'}:a);rPlan();}
 async function delA(id){if(!confirm('Supprimer définitivement ?'))return;await RDV.deleteAppt(id);_appts=_appts.filter(a=>a.id!==id);rPlan();}
-async function remind(id){const a=_appts.find(x=>x.id===id);const u=_users.find(x=>x.id===a?.user_id);if(u&&a)await Email.reminder(u,a);alert('📨 Rappel envoyé !');}
-function printPlan(){const da=_appts.filter(a=>a.date===_pd&&a.status!=='cancelled').sort((a,b)=>a.slot.localeCompare(b.slot));const rows=da.map(a=>`${a.slot.slice(0,5)}–${addMins(a.slot.slice(0,5),30)}  |  ${a.driver_name}  |  ${a.driver_phone||'—'}  |  ${a.truck_plate}  |  ${a.load_type}  |  ${a.tonnage}T  |  ${a.order_number}`).join('\n');const w=window.open('','_blank');w.document.write(`<html><body><pre style="font-family:monospace;padding:2rem;font-size:13px"><h2>Planning Sojalim — ${fmtDate(_pd)}</h2><p>193 Impasse Lautrec, 65500 Vic-en-Bigorre · 05 62 96 00 00</p><hr>\n${rows||'Aucun rendez-vous'}\n\nTotal : ${da.filter(a=>a.status==='confirmed').length} RDV · ${da.reduce((s,a)=>s+parseFloat(a.tonnage||0),0).toFixed(0)}T</pre></body></html>`);w.print();}
+async function remindA(id){const a=_appts.find(x=>x.id===id);const u=_users.find(x=>x.id===a?.user_id);if(u&&a)await Email.reminder(u,a);alert('📨 Rappel envoyé !');}
+function printPlan(){const da=_appts.filter(a=>a.date===_pd&&a.status!=='cancelled').sort((a,b)=>a.slot.localeCompare(b.slot));const rows=da.map(a=>`${a.slot.slice(0,5)}–${addMins(a.slot.slice(0,5),30)}  |  ${a.driver_name}  |  ${a.driver_phone||'—'}  |  ${a.truck_plate}  |  ${a.load_type}  |  ${a.tonnage}T  |  ${a.order_number}`).join('\n');const w=window.open('','_blank');w.document.write(`<html><body><pre style="font-family:monospace;padding:2rem;font-size:13px"><h2>Planning Sojalim — ${fmtDate(_pd)}</h2><hr>\n${rows||'Aucun rendez-vous'}\n\nTotal : ${da.filter(a=>a.status==='confirmed').length} RDV · ${da.reduce((s,a)=>s+parseFloat(a.tonnage||0),0).toFixed(0)}T</pre></body></html>`);w.print();}
 
-// ── CALENDRIER ────────────────────────────────────────
+// ── CALENDRIER ─────────────────────────────────────────
 function rCal(){
   const c=document.getElementById('ac');
   const mnames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
@@ -174,15 +285,12 @@ function rCal(){
   const maxT=_sett.maxTrucks||20,now=todayStr();
   const ms=`${_cy}-${String(_cm+1).padStart(2,'0')}`;
   const mOk=_appts.filter(a=>a.status==='confirmed'&&a.date?.startsWith(ms));
-  const mTonn=mOk.reduce((s,a)=>s+parseFloat(a.tonnage||0),0);
-  const dAct=new Set(mOk.map(a=>a.date)).size;
   c.innerHTML=`
     <h2>Calendrier mensuel</h2>
     <div class="flex fxb mb" style="flex-wrap:wrap;gap:1rem">
-      <div class="flex fxc gap"><button class="btn btn--o" onclick="_cm--;if(_cm<0){_cm=11;_cy--;}rCal()">◀</button><h3 style="min-width:200px;text-align:center;margin:0">${mnames[_cm]} ${_cy}</h3><button class="btn btn--o" onclick="_cm++;if(_cm>11){_cm=0;_cy++;}rCal()">▶</button></div>
-      <div class="flex gap-sm" style="flex-wrap:wrap;font-size:.78rem">${[['var(--g10)','Confirmés'],['var(--redbg)','Fermé/Férié'],['#fff3e0','Plein'],['white','Ouvert']].map(([bg,l])=>`<span class="flex fxc gap-sm" style="color:var(--sub)"><span style="display:inline-block;width:12px;height:12px;background:${bg};border:1px solid var(--border);border-radius:2px"></span>${l}</span>`).join('')}</div>
+      <div class="flex fxc gap"><button class="btn btn--o" onclick="_cm--;if(_cm<0){_cm=11;_cy--;}rCal()">◀</button><h3 style="min-width:190px;text-align:center;margin:0">${mnames[_cm]} ${_cy}</h3><button class="btn btn--o" onclick="_cm++;if(_cm>11){_cm=0;_cy++;}rCal()">▶</button></div>
     </div>
-    <div class="card" style="padding:1.5rem">
+    <div class="card" style="padding:1.3rem">
       <div class="cal-hd">${dn.map(d=>`<div class="cal-dn ${d==='Sam'||d==='Dim'?'we':''}">${d}</div>`).join('')}</div>
       <div class="cal-grid">
         ${cells.map(d=>{
@@ -193,46 +301,45 @@ function rCal(){
           const wl=da.filter(a=>a.status==='waitlist').length;
           const isH=HOLIDAYS.has(ds),isC=!!_cl.find(cl=>cl.date===ds),isW=d.getDay()===0||d.getDay()===6,isT=ds===now,isFull=conf>=maxT;
           const cls=['cal-cell',isT?'today':'',isH||isC||isW?'closed':isFull?'full':conf>0?'has':''].join(' ');
-          const pct=conf/maxT;
           return`<div class="${cls}" onclick="${!isW&&!isH&&!isC?`_pd='${ds}';gt('plan')`:''}">
             <div class="cal-num ${isW||isH||isC?'cl':''} ${isT?'td':''}">${d.getDate()}</div>
             ${!isW&&!isH&&!isC&&conf>0?`<div class="cal-cnt">🚛 ${conf}/${maxT}</div>`:''}
-            ${wl>0?`<div style="font-size:.67rem;color:var(--orange)">⏳ ${wl}</div>`:''}
-            ${!isW&&!isH&&!isC&&conf>0?`<div class="cal-bar"><div class="cal-fill ${pct>=1?'or':''}" style="width:${Math.min(pct,1)*100}%"></div></div>`:''}
-            ${isH?'<div style="font-size:.63rem;color:var(--red)">Férié</div>':''}
-            ${isC?'<div style="font-size:.63rem;color:var(--red)">Fermé</div>':''}
+            ${wl>0?`<div style="font-size:.66rem;color:var(--orange)">⏳${wl}</div>`:''}
+            ${!isW&&!isH&&!isC&&conf>0?`<div class="cal-bar"><div class="cal-fill ${conf/maxT>=1?'or':''}" style="width:${Math.min(conf/maxT,1)*100}%"></div></div>`:''}
+            ${isH?'<div style="font-size:.62rem;color:var(--red)">Férié</div>':''}
+            ${isC?'<div style="font-size:.62rem;color:var(--red)">Fermé</div>':''}
           </div>`;
         }).join('')}
       </div>
     </div>
     <div class="g3 mt">
-      ${[['🚛','RDV ce mois',mOk.length,'var(--mid)'],['⚖️','Tonnage',mTonn.toFixed(0)+'T','var(--gold)'],['📅','Jours actifs',dAct,'var(--blue)']].map(([ic,lb,v,ac])=>`<div class="card" style="border-left:4px solid ${ac};padding:1.1rem"><div>${ic}</div><div style="font-size:1.7rem;font-weight:800;color:${ac}">${v}</div><div style="font-size:.78rem;color:var(--muted)">${lb}</div></div>`).join('')}
+      ${[['🚛','RDV ce mois',mOk.length,'var(--mid)'],['⚖️','Tonnage',mOk.reduce((s,a)=>s+parseFloat(a.tonnage||0),0).toFixed(0)+'T','var(--gold)'],['📅','Jours actifs',new Set(mOk.map(a=>a.date)).size,'var(--blue)']].map(([ic,lb,v,ac])=>`<div class="card" style="border-left:4px solid ${ac};padding:1rem"><div>${ic}</div><div style="font-size:1.6rem;font-weight:800;color:${ac}">${v}</div><div style="font-size:.76rem;color:var(--muted)">${lb}</div></div>`).join('')}
     </div>`;
 }
 
-// ── RECHERCHE ─────────────────────────────────────────
+// ── RECHERCHE ──────────────────────────────────────────
 function rSearch(){
   const c=document.getElementById('ac');
   const q=_gq.trim().toLowerCase();
-  const ar=q.length<2?[]:_appts.filter(a=>[a.id,a.driver_name,a.driver_phone,a.truck_plate,a.order_number,a.company_name,a.load_type,a.date].join(' ').toLowerCase().includes(q)).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,50);
-  const ur=q.length<2?[]:_users.filter(u=>[u.first_name,u.last_name,u.email,u.company,u.phone,u.siret].join(' ').toLowerCase().includes(q));
+  const ar=q.length<2?[]:_appts.filter(a=>[a.id,a.driver_name,a.driver_phone,a.truck_plate,a.order_number,a.company_name,a.date].join(' ').toLowerCase().includes(q)).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,50);
+  const ur=q.length<2?[]:_users.filter(u=>[u.first_name,u.last_name,u.email,u.company,u.phone].join(' ').toLowerCase().includes(q));
   c.innerHTML=`
     <h2>Recherche globale</h2>
     <div class="card mb">
       <div class="flex gap" style="flex-wrap:wrap">
-        <div class="srch" style="flex:1"><span class="srch-ico">🔍</span><input autofocus class="inp srch-inp" id="gs" value="${_gq}" placeholder="Référence, plaque, chauffeur, bon de commande, email…" style="font-size:1rem" oninput="_gq=this.value;rSearch()"/></div>
+        <div class="srch" style="flex:1"><span class="srch-ico">🔍</span><input autofocus class="inp srch-inp" id="gs" value="${_gq}" placeholder="Référence, plaque, chauffeur, email…" oninput="_gq=this.value;rSearch()"/></div>
         <div class="flex gap-sm">${[['all','Tout'],['appts','RDV'],['users','Comptes']].map(([v,l])=>`<button class="btn btn--pill btn--o ${_gt===v?'on':''}" onclick="_gt='${v}';rSearch()">${l}</button>`).join('')}</div>
       </div>
-      ${q.length>=2?`<div class="muted mt">${ar.length+ur.length} résultat(s) — ${ar.length} RDV · ${ur.length} compte(s)</div>`:''}
+      ${q.length>=2?`<div class="muted mt">${ar.length+ur.length} résultat(s)</div>`:''}
     </div>
     ${q.length<2?'<div class="tc" style="padding:4rem;color:var(--muted)"><div style="font-size:3rem;margin-bottom:1rem">🔍</div><p>Saisissez au moins 2 caractères…</p></div>':''}
-    ${(_gt==='all'||_gt==='appts')&&ar.length>0?`<div class="mb"><h3 class="mb">📋 Rendez-vous (${ar.length})</h3>${ar.map(a=>{const sc=a.status==='cancelled'?'var(--red)':a.status==='waitlist'?'var(--orange)':'#27ae60';return`<div class="card card--b" style="border-left:4px solid ${sc};margin-bottom:.6rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap;padding:.9rem 1.2rem"><span style="background:${sc};color:white;border-radius:6px;padding:.2rem .6rem;font-size:.8rem;font-weight:700">${a.slot.slice(0,5)}</span><div style="flex:1;min-width:200px"><div style="font-weight:700;color:var(--green)">${fmtDate(a.date)}</div><div style="font-size:.8rem;color:var(--sub)">👤 ${a.driver_name} · 🚛 ${a.truck_plate} · 🏢 ${a.company_name||'—'}</div></div><div style="font-size:.72rem;color:var(--muted);font-family:monospace">${a.id}</div></div>`;}).join('')}</div>`:''}
-    ${(_gt==='all'||_gt==='users')&&ur.length>0?`<div><h3 class="mb">👥 Comptes (${ur.length})</h3>${ur.map(u=>`<div class="user-card"><div class="user-card__avatar" style="background:${u.role==='admin'?'var(--gold)':u.role==='driver'?'var(--blue)':'var(--mid)'}">${u.role==='admin'?'👑':'🚛'}</div><div class="user-card__info"><div class="user-card__name">${u.first_name} ${u.last_name} <span class="badge role-${u.role}" style="margin-left:.4rem">${u.role}</span></div><div class="user-card__sub">${u.email} · ${u.company}</div></div><span class="badge ${u.status==='active'?'badge--g':u.status==='pending'?'badge--o':'badge--r'}">${u.status==='active'?'✅':u.status==='pending'?'⏳':'🔴'}</span></div>`).join('')}</div>`:''}
+    ${(_gt==='all'||_gt==='appts')&&ar.length>0?`<div class="mb"><h3 class="mb">📋 Rendez-vous (${ar.length})</h3>${ar.map(a=>{const sc=a.status==='cancelled'?'var(--red)':a.status==='waitlist'?'var(--orange)':'#27ae60';return`<div class="card card--b" style="border-left:4px solid ${sc};margin-bottom:.5rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap;padding:.85rem 1.1rem"><span style="background:${sc};color:white;border-radius:6px;padding:.2rem .55rem;font-size:.78rem;font-weight:700">${a.slot.slice(0,5)}</span><div style="flex:1"><div style="font-weight:700;color:var(--green)">${fmtDate(a.date)}</div><div style="font-size:.78rem;color:var(--sub)">👤 ${a.driver_name} · 🚛 ${a.truck_plate} · 🏢 ${a.company_name||'—'}</div></div><div style="font-size:.7rem;color:var(--muted);font-family:monospace">${a.id}</div></div>`;}).join('')}</div>`:''}
+    ${(_gt==='all'||_gt==='users')&&ur.length>0?`<div><h3 class="mb">👥 Comptes (${ur.length})</h3>${ur.map(u=>{const score=_scores.find(s=>s.id===u.id);return`<div class="user-card"><div class="user-card__avatar" style="background:${u.role==='admin'?'var(--gold)':u.role==='driver'?'var(--blue)':'var(--mid)'}">${u.role==='admin'?'👑':'🚛'}</div><div class="user-card__info"><div class="user-card__name">${u.first_name} ${u.last_name} <span class="badge role-${u.role}">${u.role}</span>${score?.alert_level==='danger'?'<span class="badge badge--r" style="margin-left:.3rem">⚠️</span>':score?.alert_level==='warning'?'<span class="badge badge--o" style="margin-left:.3rem">🟠</span>':''}</div><div class="user-card__sub">${u.email} · ${u.company}</div></div><span class="badge ${u.status==='active'?'badge--g':u.status==='pending'?'badge--o':'badge--r'}">${u.status==='active'?'✅':u.status==='pending'?'⏳':'🔴'}</span></div>`;}).join('')}</div>`:''}
     ${q.length>=2&&ar.length===0&&ur.length===0?`<div class="tc" style="padding:3rem;color:var(--muted)">Aucun résultat pour « ${_gq} »</div>`:''}`;
   document.getElementById('gs')?.focus();
 }
 
-// ── COMPTES ───────────────────────────────────────────
+// ── COMPTES ────────────────────────────────────────────
 function rUsers(){
   const c=document.getElementById('ac');
   const filt=_users.filter(u=>_uf==='all'||u.status===_uf||u.role===_uf).filter(u=>!_us||[u.email,u.first_name,u.last_name,u.company].join(' ').toLowerCase().includes(_us.toLowerCase()));
@@ -242,27 +349,32 @@ function rUsers(){
       <div class="srch" style="max-width:240px"><span class="srch-ico">🔍</span><input class="inp srch-inp" value="${_us}" placeholder="Rechercher…" oninput="_us=this.value;rUsers()"/></div>
       ${[['all','Tous'],['active','✅ Actifs'],['pending','⏳ En attente'],['disabled','🔴 Désactivés'],['admin','👑 Admins'],['transporter','🚛 Transporteurs'],['driver','🚗 Chauffeurs']].map(([v,l])=>`<button class="btn btn--pill btn--o ${_uf===v?'on':''}" onclick="_uf='${v}';rUsers()">${l}</button>`).join('')}
     </div></div>
-    <div>${filt.map(u=>`<div class="user-card" style="opacity:${u.status==='disabled'?.6:1}">
-      <div class="user-card__avatar" style="background:${u.role==='admin'?'var(--gold)':u.role==='driver'?'var(--blue)':'var(--mid)'}">${u.role==='admin'?'👑':'🚛'}</div>
-      <div class="user-card__info">
-        <div class="user-card__name">${u.first_name} ${u.last_name} <span class="badge role-${u.role}" style="margin-left:.4rem">${u.role}</span></div>
-        <div class="user-card__sub">${u.email} · ${u.phone} · ${u.company}</div>
-        <div class="user-card__sub" style="font-size:.74rem">${u.address||''}</div>
-      </div>
-      <span class="badge ${u.status==='active'?'badge--g':u.status==='pending'?'badge--o':'badge--r'}">${u.status==='active'?'✅ Actif':u.status==='pending'?'⏳ En attente':'🔴 Désactivé'}</span>
-      <div class="user-card__actions">
-        ${u.status==='pending'?`<button class="btn btn--p btn--sm" onclick="approveU('${u.id}')">✅ Approuver</button>`:''}
-        ${u.id!==_adm?.id?`<button class="btn btn--o btn--sm" onclick="toggleU('${u.id}')">${u.status==='active'?'Désactiver':'Réactiver'}</button>`:''}
-        ${u.id!==_adm?.id?`<button class="btn btn--o btn--sm" onclick="delU('${u.id}')">🗑</button>`:''}
-      </div>
-    </div>`).join('')}</div>`;
+    <div>${filt.map(u=>{
+      const score=_scores.find(s=>s.id===u.id);
+      return`<div class="user-card" style="opacity:${u.status==='disabled'?.6:1}">
+        <div class="user-card__avatar" style="background:${u.role==='admin'?'var(--gold)':u.role==='driver'?'var(--blue)':'var(--mid)'}">${u.role==='admin'?'👑':'🚛'}</div>
+        <div class="user-card__info">
+          <div class="user-card__name">${u.first_name} ${u.last_name} <span class="badge role-${u.role}">${u.role}</span>
+            ${score?.alert_level==='danger'?`<span class="penalty-badge danger" style="margin-left:.4rem">⚠️ ${score.total_penalty}pts</span>`:score?.alert_level==='warning'?`<span class="penalty-badge warning" style="margin-left:.4rem">🟠 ${score.total_penalty}pts</span>`:''}
+          </div>
+          <div class="user-card__sub">${u.email} · ${u.phone} · ${u.company}</div>
+        </div>
+        <span class="badge ${u.status==='active'?'badge--g':u.status==='pending'?'badge--o':'badge--r'}">${u.status==='active'?'✅ Actif':u.status==='pending'?'⏳ En attente':'🔴 Désactivé'}</span>
+        <div class="user-card__actions">
+          ${u.status==='pending'?`<button class="btn btn--p btn--sm" onclick="approveU('${u.id}')">✅ Approuver</button>`:''}
+          ${u.id!==_adm?.id?`<button class="btn btn--o btn--sm" onclick="toggleU('${u.id}')">${u.status==='active'?'Désactiver':'Réactiver'}</button>`:''}
+          ${u.id!==_adm?.id?`<button class="btn btn--o btn--sm" onclick="delU('${u.id}')">🗑</button>`:''}
+        </div>
+      </div>`;
+    }).join('')}</div>`;
 }
-async function approveU(id){const u=_users.find(x=>x.id===id);await SB.update('users',{id:`eq.${id}`},{status:'active'});if(u)Email.approved(u);_users=_users.map(x=>x.id===id?{...x,status:'active'}:x);_uf==='all'?rDash():rUsers();}
+async function approveU(id){const u=_users.find(x=>x.id===id);await SB.update('users',{id:`eq.${id}`},{status:'active'});if(u)Email.approved(u);_users=_users.map(x=>x.id===id?{...x,status:'active'}:x);_tab==='users'?rUsers():rDash();}
 async function rejectU(id){if(!confirm('Refuser ce compte ?'))return;await SB.update('users',{id:`eq.${id}`},{status:'disabled'});_users=_users.map(x=>x.id===id?{...x,status:'disabled'}:x);rDash();}
 async function toggleU(id){const u=_users.find(x=>x.id===id);const ns=u.status==='active'?'disabled':'active';await SB.update('users',{id:`eq.${id}`},{status:ns});_users=_users.map(x=>x.id===id?{...x,status:ns}:x);rUsers();}
-async function delU(id){if(!confirm('Supprimer définitivement ce compte ?'))return;await SB.delete('users',{id:`eq.${id}`});_users=_users.filter(x=>x.id!==id);rUsers();}
+async function suspendUser(id){if(!confirm('Suspendre ce compte ?'))return;await SB.update('users',{id:`eq.${id}`},{status:'disabled'});_users=_users.map(x=>x.id===id?{...x,status:'disabled'}:x);await reload();rDash();}
+async function delU(id){if(!confirm('Supprimer définitivement ?'))return;await SB.delete('users',{id:`eq.${id}`});_users=_users.filter(x=>x.id!==id);rUsers();}
 
-// ── INVITATIONS ───────────────────────────────────────
+// ── INVITATIONS ────────────────────────────────────────
 function rInvites(){
   const c=document.getElementById('ac');
   const pending=_invites.filter(i=>i.status==='pending');
@@ -271,59 +383,115 @@ function rInvites(){
   const pendU=_users.filter(u=>u.status==='pending');
   c.innerHTML=`
     <h2>Invitations &amp; Approbations</h2>
-    ${pendU.length>0?`<div class="card card--y mb" style="border:2px solid var(--orange)"><h3 style="color:var(--orange);margin-bottom:1rem">⏳ Approbations en attente (${pendU.length})</h3>${pendU.map(u=>`<div style="display:flex;align-items:center;gap:1rem;padding:.8rem 1rem;background:white;border-radius:8px;margin-bottom:.5rem;flex-wrap:wrap"><div style="flex:1;min-width:200px"><div style="font-weight:700;color:var(--green)">${u.first_name} ${u.last_name} <span class="badge role-${u.role}" style="margin-left:.4rem">${u.role}</span></div><div style="font-size:.82rem;color:var(--sub)">${u.email} · ${u.company}</div><div style="font-size:.77rem;color:var(--muted)">📞 ${u.phone} · Inscrit le ${fmtDT(u.created_at)}</div></div><div class="flex gap-sm"><button class="btn btn--p btn--sm" onclick="approveU('${u.id}')">✅ Approuver</button><button class="btn btn--r btn--sm" onclick="rejectU('${u.id}')">❌ Refuser</button></div></div>`).join('')}</div>`:''}
+    ${pendU.length>0?`<div class="card card--y mb" style="border:2px solid var(--orange)"><h3 style="color:var(--orange);margin-bottom:.8rem">⏳ Approbations en attente (${pendU.length})</h3>
+    ${pendU.map(u=>`<div style="display:flex;align-items:center;gap:1rem;padding:.7rem 1rem;background:white;border-radius:8px;margin-bottom:.4rem;flex-wrap:wrap"><div style="flex:1"><div style="font-weight:700;color:var(--green)">${u.first_name} ${u.last_name} <span class="badge role-${u.role}">${u.role}</span></div><div style="font-size:.8rem;color:var(--sub)">${u.email} · ${u.company}</div><div style="font-size:.75rem;color:var(--muted)">📞 ${u.phone} · ${fmtDT(u.created_at)}</div></div><div class="flex gap-sm"><button class="btn btn--p btn--sm" onclick="approveU('${u.id}')">✅ Approuver</button><button class="btn btn--r btn--sm" onclick="rejectU('${u.id}')">❌ Refuser</button></div></div>`).join('')}
+    </div>`:''}
     <div class="card mb">
-      <h3 style="margin-bottom:.8rem">✉️ Inviter un transporteur</h3>
-      <p style="color:var(--sub);font-size:.87rem;margin-bottom:1.2rem">Le destinataire reçoit un lien unique pour créer son compte. Il sera soumis à votre approbation avant activation.</p>
+      <h3 style="margin-bottom:.7rem">✉️ Inviter un transporteur</h3>
       <div id="inv-al"></div>
       <div class="fg">
         <div class="field"><label class="lbl">Email *</label><input class="inp" id="inv-em" type="email" placeholder="transporteur@example.com"/></div>
-        <div class="field"><label class="lbl">Note interne</label><input class="inp" id="inv-no" placeholder="Transporteur espagnol, région Aragon…"/></div>
+        <div class="field"><label class="lbl">Note interne</label><input class="inp" id="inv-no" placeholder="Transporteur espagnol…"/></div>
       </div>
       <button class="btn btn--p mt" onclick="sendInv()">✉️ Envoyer l'invitation</button>
     </div>
     <div class="g2">
-      <div class="card"><h3 style="margin-bottom:1rem">📬 En attente (${pending.length})</h3>
-        ${pending.length===0?'<p class="muted">Aucune invitation en attente</p>':
-        pending.map(i=>`<div style="padding:.7rem .9rem;background:var(--g10);border-radius:8px;border:1px solid var(--g20);margin-bottom:.5rem"><div style="font-weight:600;color:var(--green)">${i.email}</div><div style="font-size:.78rem;color:var(--muted);margin-top:.1rem"><span class="badge role-${i.role}">${i.role}</span> · ${fmtDT(i.created_at)}</div>${i.note?`<div style="font-size:.78rem;color:var(--sub)">📝 ${i.note}</div>`:''}<div class="flex gap-sm mt"><code style="font-size:.7rem;background:var(--cream);padding:.15rem .4rem;border-radius:3px;color:var(--sub);flex:1;overflow:hidden;text-overflow:ellipsis">${i.token?.slice(0,20)}…</code><button class="btn btn--r btn--sm" onclick="revokeInv('${i.id}')">Révoquer</button></div></div>`).join('')}
+      <div class="card"><h3 style="margin-bottom:.8rem">📬 En attente (${pending.length})</h3>
+        ${pending.length===0?'<p class="muted">Aucune</p>':
+        pending.map(i=>`<div style="padding:.65rem .85rem;background:var(--g10);border-radius:8px;border:1px solid var(--g20);margin-bottom:.45rem"><div style="font-weight:600;color:var(--green);font-size:.88rem">${i.email} <span class="badge role-${i.role}">${i.role}</span></div>${i.note?`<div style="font-size:.76rem;color:var(--sub)">📝 ${i.note}</div>`:''}<div style="font-size:.72rem;color:var(--muted)">${fmtDT(i.created_at)}</div><div class="flex gap-sm mt"><code style="font-size:.68rem;background:var(--cream);padding:.12rem .35rem;border-radius:3px;flex:1;overflow:hidden;text-overflow:ellipsis">${i.token?.slice(0,22)}…</code><button class="btn btn--r btn--sm" onclick="revokeInv('${i.id}')">Révoquer</button></div></div>`).join('')}
       </div>
-      <div class="card"><h3 style="margin-bottom:1rem">✅ Utilisées (${used.length}) · 🚫 Révoquées (${revoked.length})</h3>
+      <div class="card"><h3 style="margin-bottom:.8rem">✅ Utilisées (${used.length}) · 🚫 Révoquées (${revoked.length})</h3>
         ${[...used,...revoked].length===0?'<p class="muted">Aucun historique</p>':
-        [...used,...revoked].sort((a,b)=>b.created_at.localeCompare(a.created_at)).map(i=>`<div style="padding:.6rem .8rem;background:${i.status==='used'?'var(--g10)':'var(--redbg)'};border-radius:7px;border:1px solid ${i.status==='used'?'var(--g20)':'var(--redbrd)'};display:flex;align-items:center;gap:.8rem;margin-bottom:.4rem"><span>${i.status==='used'?'✅':'🚫'}</span><div><div style="font-weight:600;color:var(--green);font-size:.87rem">${i.email} <span class="badge role-${i.role}">${i.role}</span></div><div style="font-size:.73rem;color:var(--muted)">${fmtDT(i.created_at)}</div></div></div>`).join('')}
+        [...used,...revoked].sort((a,b)=>b.created_at.localeCompare(a.created_at)).map(i=>`<div style="padding:.55rem .8rem;background:${i.status==='used'?'var(--g10)':'var(--redbg)'};border-radius:7px;border:1px solid ${i.status==='used'?'var(--g20)':'var(--redbrd)'};display:flex;align-items:center;gap:.7rem;margin-bottom:.35rem"><span>${i.status==='used'?'✅':'🚫'}</span><div><div style="font-weight:600;color:var(--green);font-size:.85rem">${i.email} <span class="badge role-${i.role}">${i.role}</span></div><div style="font-size:.72rem;color:var(--muted)">${fmtDT(i.created_at)}</div></div></div>`).join('')}
       </div>
     </div>`;
 }
 async function sendInv(){const em=document.getElementById('inv-em').value.trim(),no=document.getElementById('inv-no').value.trim(),al=document.getElementById('inv-al');try{const inv=await Auth.createInvitation(em,'transporter',_adm.id,no);await Email.inviteTransporter(em,inv.token,_adm,no);_invites.unshift({...inv,status:'pending'});al.innerHTML=`<div class="al al--s">✅ Invitation envoyée à ${em}</div>`;document.getElementById('inv-em').value='';document.getElementById('inv-no').value='';setTimeout(()=>rInvites(),2000);}catch(e){al.innerHTML=`<div class="al al--e">${e.message}</div>`;}}
 async function revokeInv(id){await SB.update('invitations',{id:`eq.${id}`},{status:'revoked'});_invites=_invites.map(i=>i.id===id?{...i,status:'revoked'}:i);rInvites();}
 
-// ── FERMETURES ────────────────────────────────────────
+// ── INCIDENTS ──────────────────────────────────────────
+function rIncidents(){
+  const c=document.getElementById('ac');
+  const typeLabels={no_show:'🚫 Non-présentation',late:'⏰ Retard',partial_load:'📦 Charg. incomplet',other:'📝 Autre'};
+  c.innerHTML=`
+    <h2>Incidents &amp; Pénalités</h2>
+    <div class="section-hdr"><h3 style="margin:0">📊 Scores des transporteurs</h3></div>
+    <div class="card mb">
+      ${_scores.length===0?'<p class="muted tc" style="padding:1.5rem">Aucun incident enregistré</p>':
+      `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.85rem">
+        <thead><tr style="border-bottom:2px solid var(--border)">
+          <th style="text-align:left;padding:.6rem .8rem;color:var(--muted);font-size:.73rem;text-transform:uppercase">Transporteur</th>
+          <th style="text-align:center;padding:.6rem .8rem;color:var(--muted);font-size:.73rem;text-transform:uppercase">Score</th>
+          <th style="text-align:center;padding:.6rem .8rem;color:var(--muted);font-size:.73rem;text-transform:uppercase">Non-venues</th>
+          <th style="text-align:center;padding:.6rem .8rem;color:var(--muted);font-size:.73rem;text-transform:uppercase">Retards</th>
+          <th style="text-align:center;padding:.6rem .8rem;color:var(--muted);font-size:.73rem;text-transform:uppercase">Total</th>
+          <th style="text-align:center;padding:.6rem .8rem;color:var(--muted);font-size:.73rem;text-transform:uppercase">Statut</th>
+          <th style="padding:.6rem .8rem"></th>
+        </tr></thead>
+        <tbody>
+          ${_scores.map(s=>`<tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:.7rem .8rem"><div style="font-weight:700;color:var(--green)">${s.first_name} ${s.last_name}</div><div style="font-size:.77rem;color:var(--sub)">${s.company}</div></td>
+            <td style="text-align:center;padding:.7rem .8rem"><span class="penalty-badge ${s.alert_level}">${s.total_penalty} pt</span></td>
+            <td style="text-align:center;padding:.7rem .8rem;font-weight:700;color:${s.no_shows>0?'var(--red)':'var(--text)'}">${s.no_shows}</td>
+            <td style="text-align:center;padding:.7rem .8rem;font-weight:700;color:${s.lates>0?'var(--orange)':'var(--text)'}">${s.lates}</td>
+            <td style="text-align:center;padding:.7rem .8rem">${s.total_incidents}</td>
+            <td style="text-align:center;padding:.7rem .8rem"><span class="badge ${s.status==='active'?'badge--g':s.status==='disabled'?'badge--r':'badge--o'}">${s.status==='active'?'✅':s.status==='disabled'?'🔴':'⏳'}</span></td>
+            <td style="padding:.7rem .8rem">${s.alert_level!=='ok'?`<button class="btn btn--r btn--sm" onclick="suspendUser('${s.id}')">Suspendre</button>`:''}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table></div>`}
+    </div>
+    <div class="section-hdr"><h3 style="margin:0">📋 Historique (${_incidents.length})</h3></div>
+    ${_incidents.length===0?`<div class="card tc" style="padding:2rem"><p class="muted">Aucun incident enregistré</p></div>`:
+    _incidents.slice(0,30).map(inc=>{
+      const user=_users.find(u=>u.id===inc.user_id);
+      return`<div class="card card--b mb" style="padding:1rem 1.2rem">
+        <div class="flex fxb" style="flex-wrap:wrap;gap:.8rem">
+          <div>
+            <div class="flex fxc gap-sm mb"><span style="font-size:1.1rem">${inc.type==='no_show'?'🚫':inc.type==='late'?'⏰':inc.type==='partial_load'?'📦':'📝'}</span><strong>${typeLabels[inc.type]||inc.type}</strong>${inc.late_minutes>0?`<span class="badge badge--o">${inc.late_minutes} min</span>`:''}</div>
+            <div style="font-size:.84rem;color:var(--sub)">👤 ${user?user.first_name+' '+user.last_name:'—'} — ${user?.company||'—'}</div>
+            <div style="font-size:.82rem;color:var(--sub)">📋 ${inc.appointment_id}</div>
+            ${inc.note?`<div style="font-size:.8rem;color:var(--sub)">📝 ${inc.note}</div>`:''}
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <span class="penalty-badge ${inc.penalty>=2?'danger':inc.penalty>=1?'warning':'ok'}">${inc.penalty} pt</span>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:.3rem">${fmtDT(inc.created_at)}</div>
+            <button class="btn btn--r btn--sm" style="margin-top:.4rem" onclick="delInc('${inc.id}')">🗑 Supprimer</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+async function delInc(id){if(!confirm('Supprimer cet incident ?'))return;await RDV.deleteIncident(id);_incidents=_incidents.filter(i=>i.id!==id);await reload();rIncidents();}
+
+// ── FERMETURES ─────────────────────────────────────────
 function rClosures(){
   const c=document.getElementById('ac');
   const upHol=[...HOLIDAYS].filter(d=>d>=todayStr()).sort().slice(0,8);
   c.innerHTML=`
     <h2>Fermetures exceptionnelles</h2>
-    <div class="card mb"><h3 style="margin-bottom:1rem">✚ Ajouter une fermeture</h3>
+    <div class="card mb"><h3 style="margin-bottom:.8rem">✚ Ajouter une fermeture</h3>
       <div id="cl-al"></div>
       <div style="display:grid;grid-template-columns:1fr 2fr auto;gap:.8rem;align-items:end">
         <div class="field"><label class="lbl">Date</label><input class="inp" type="date" id="cl-d" min="${todayStr()}"/></div>
-        <div class="field"><label class="lbl">Motif</label><input class="inp" id="cl-r" placeholder="Maintenance, congés, intempéries…"/></div>
+        <div class="field"><label class="lbl">Motif</label><input class="inp" id="cl-r" placeholder="Maintenance, congés…"/></div>
         <button class="btn btn--p" onclick="addCl()">Ajouter</button>
       </div>
     </div>
     <div class="g2">
-      <div class="card"><h3 style="margin-bottom:1rem">📅 Fermetures programmées (${_cl.length})</h3>
+      <div class="card"><h3 style="margin-bottom:.8rem">📅 Fermetures programmées (${_cl.length})</h3>
         ${_cl.length===0?'<p class="muted tc" style="padding:1.5rem">Aucune fermeture programmée</p>':
-        _cl.map(cl=>`<div style="display:flex;align-items:center;gap:.8rem;padding:.7rem .9rem;background:var(--redbg);border-radius:8px;border:1px solid var(--redbrd);margin-bottom:.5rem"><strong style="color:var(--red);flex-shrink:0;font-size:.85rem">${fmtDate(cl.date)}</strong><span style="flex:1;color:var(--sub);font-size:.85rem">${cl.reason}</span><button class="btn btn--r btn--sm" onclick="delCl('${cl.id||cl.date}')">🗑</button></div>`).join('')}
+        _cl.map(cl=>`<div style="display:flex;align-items:center;gap:.8rem;padding:.65rem .85rem;background:var(--redbg);border-radius:8px;border:1px solid var(--redbrd);margin-bottom:.4rem"><strong style="color:var(--red);flex-shrink:0;font-size:.83rem">${fmtDate(cl.date)}</strong><span style="flex:1;color:var(--sub);font-size:.83rem">${cl.reason}</span><button class="btn btn--r btn--sm" onclick="delCl('${cl.id}')">🗑</button></div>`).join('')}
       </div>
-      <div class="card"><h3 style="margin-bottom:1rem">🎌 Prochains jours fériés</h3>
-        <div style="display:flex;flex-wrap:wrap;gap:.5rem">${upHol.map(d=>`<span style="background:var(--cream);border:1px solid var(--border);border-radius:6px;padding:.3rem .7rem;font-size:.79rem;color:var(--sub)">${fmtDate(d)}</span>`).join('')}</div>
+      <div class="card"><h3 style="margin-bottom:.8rem">🎌 Prochains jours fériés</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:.45rem">${upHol.map(d=>`<span style="background:var(--cream);border:1px solid var(--border);border-radius:6px;padding:.28rem .65rem;font-size:.77rem;color:var(--sub)">${fmtDate(d)}</span>`).join('')}</div>
       </div>
     </div>`;
 }
 async function addCl(){const d=document.getElementById('cl-d').value,r=document.getElementById('cl-r').value.trim(),al=document.getElementById('cl-al');if(!d||!r){al.innerHTML='<div class="al al--e">Date et motif requis.</div>';return;}if(_cl.find(c=>c.date===d)){al.innerHTML='<div class="al al--e">Cette date est déjà bloquée.</div>';return;}try{const row=await SB.insert('closures',{date:d,reason:r,created_by:_adm.id});_cl.push(Array.isArray(row)?row[0]:row);_cl.sort((a,b)=>a.date.localeCompare(b.date));rClosures();}catch(e){al.innerHTML=`<div class="al al--e">${e.message}</div>`;}}
-async function delCl(id){if(!confirm('Supprimer cette fermeture ?'))return;try{await SB.delete('closures',{id:`eq.${id}`});_cl=_cl.filter(c=>c.id!==id);rClosures();}catch(e){alert(e.message);}}
+async function delCl(id){if(!confirm('Supprimer ?'))return;await SB.delete('closures',{id:`eq.${id}`});_cl=_cl.filter(c=>c.id!==id);rClosures();}
 
-// ── STATISTIQUES ──────────────────────────────────────
+// ── STATISTIQUES ───────────────────────────────────────
 function rStats(){
   const c=document.getElementById('ac');
   const conf=_appts.filter(a=>a.status==='confirmed');
@@ -338,41 +506,304 @@ function rStats(){
   c.innerHTML=`
     <h2>Statistiques</h2>
     <div class="g2 mb">
-      <div class="card" style="border-left:4px solid var(--mid);padding:1.2rem"><div>📋</div><div style="font-size:2.2rem;font-weight:800;color:var(--mid)">${conf.length}</div><div style="font-size:.82rem;color:var(--muted)">RDV confirmés (total)</div></div>
-      <div class="card" style="border-left:4px solid var(--gold);padding:1.2rem"><div>⚖️</div><div style="font-size:2.2rem;font-weight:800;color:var(--gold)">${tonn.toFixed(0)}T</div><div style="font-size:.82rem;color:var(--muted)">Tonnage total chargé</div></div>
+      <div class="card" style="border-left:4px solid var(--mid);padding:1.2rem"><div>📋</div><div style="font-size:2.1rem;font-weight:800;color:var(--mid)">${conf.length}</div><div style="font-size:.78rem;color:var(--muted)">RDV confirmés (total)</div></div>
+      <div class="card" style="border-left:4px solid var(--gold);padding:1.2rem"><div>⚖️</div><div style="font-size:2.1rem;font-weight:800;color:var(--gold)">${tonn.toFixed(0)}T</div><div style="font-size:.78rem;color:var(--muted)">Tonnage total chargé</div></div>
     </div>
     <div class="g2 mb">
-      <div class="card"><h3 class="mb">📦 Par type</h3>${LOAD_TYPES.map(lt=>`<div style="margin-bottom:.8rem"><div class="flex fxb" style="font-size:.84rem;margin-bottom:.3rem"><span style="color:var(--sub)">${lt}</span><strong style="color:var(--mid)">${byT[lt]||0}</strong></div><div style="height:8px;background:var(--cream);border-radius:4px"><div style="height:100%;width:${((byT[lt]||0)/maxT)*100}%;background:var(--mid);border-radius:4px"></div></div></div>`).join('')}</div>
-      <div class="card"><h3 class="mb">🏆 Top transporteurs</h3>${topCo.length===0?'<p class="muted">Aucune donnée</p>':topCo.map(([co,count],i)=>`<div style="margin-bottom:.8rem"><div class="flex fxb" style="font-size:.84rem;margin-bottom:.3rem"><span style="color:var(--sub)">${i+1}. ${co}</span><strong style="color:var(--gold)">${count}</strong></div><div style="height:8px;background:var(--cream);border-radius:4px"><div style="height:100%;width:${(count/maxC)*100}%;background:var(--gold);border-radius:4px"></div></div></div>`).join('')}</div>
+      <div class="card"><h3 class="mb">📦 Par type</h3>${LOAD_TYPES.map(lt=>`<div style="margin-bottom:.75rem"><div class="flex fxb" style="font-size:.83rem;margin-bottom:.25rem"><span style="color:var(--sub)">${lt}</span><strong style="color:var(--mid)">${byT[lt]||0}</strong></div><div style="height:8px;background:var(--cream);border-radius:4px"><div style="height:100%;width:${((byT[lt]||0)/maxT)*100}%;background:var(--mid);border-radius:4px"></div></div></div>`).join('')}</div>
+      <div class="card"><h3 class="mb">🏆 Top transporteurs</h3>${topCo.length===0?'<p class="muted">Aucune donnée</p>':topCo.map(([co,count],i)=>`<div style="margin-bottom:.75rem"><div class="flex fxb" style="font-size:.83rem;margin-bottom:.25rem"><span style="color:var(--sub)">${i+1}. ${co}</span><strong style="color:var(--gold)">${count}</strong></div><div style="height:8px;background:var(--cream);border-radius:4px"><div style="height:100%;width:${(count/maxC)*100}%;background:var(--gold);border-radius:4px"></div></div></div>`).join('')}</div>
     </div>
-    <div class="card"><h3 class="mb">📈 Activité 8 dernières semaines</h3>
+    <div class="card mb"><h3 class="mb">📈 Activité hebdomadaire</h3>
       <div style="display:flex;align-items:flex-end;gap:.5rem;height:90px;padding:0 .5rem">
-        ${weekly.map(({label,count})=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:.3rem"><span style="font-size:.7rem;color:var(--mid);font-weight:700;min-height:16px">${count>0?count:''}</span><div style="width:100%;background:${count>0?'var(--mid)':'var(--cream)'};border-radius:4px 4px 0 0;height:${Math.max((count/maxW)*65,3)}px"></div><span style="font-size:.68rem;color:var(--muted)">${label}</span></div>`).join('')}
+        ${weekly.map(({label,count})=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:.25rem"><span style="font-size:.68rem;color:var(--mid);font-weight:700;min-height:15px">${count>0?count:''}</span><div style="width:100%;background:${count>0?'var(--mid)':'var(--cream)'};border-radius:4px 4px 0 0;height:${Math.max((count/maxW)*65,3)}px"></div><span style="font-size:.66rem;color:var(--muted)">${label}</span></div>`).join('')}
+      </div>
+    </div>
+    <div class="card"><h3 class="mb">⚠️ Incidents par type</h3>
+      <div class="g4">
+        ${[['🚫','Non-présentation',_incidents.filter(i=>i.type==='no_show').length,'var(--red)'],['⏰','Retards',_incidents.filter(i=>i.type==='late').length,'var(--orange)'],['📦','Charg. incomplets',_incidents.filter(i=>i.type==='partial_load').length,'var(--gold)'],['📝','Autres',_incidents.filter(i=>i.type==='other').length,'var(--blue)']].map(([ic,lb,v,ac])=>`<div class="card card--b" style="border-left:3px solid ${ac};padding:.9rem"><div>${ic}</div><div style="font-size:1.5rem;font-weight:800;color:${ac}">${v}</div><div style="font-size:.75rem;color:var(--muted)">${lb}</div></div>`).join('')}
       </div>
     </div>`;
 }
 
-// ── PARAMÈTRES ────────────────────────────────────────
+// ── PARAMÈTRES ─────────────────────────────────────────
 function rSett(){
   const c=document.getElementById('ac');
   c.innerHTML=`
     <h2>Paramètres</h2>
-    <div class="card" style="max-width:500px">
-      <h3 class="mb">⚙️ Capacité journalière</h3>
-      <div id="sal"></div>
-      <div class="fg">
-        <div class="field"><label class="lbl">Nb max camions / jour</label><input class="inp" type="number" id="s-tr" value="${_sett.maxTrucks||20}"/></div>
-        <div class="field"><label class="lbl">Tonnage max / jour (T)</label><input class="inp" type="number" id="s-to" value="${_sett.maxTonnage||500}"/></div>
+    <div class="g2">
+      <div class="card">
+        <h3 class="mb">⚙️ Capacité journalière</h3>
+        <div id="sal"></div>
+        <div class="fg">
+          <div class="field"><label class="lbl">Nb max camions / jour</label><input class="inp" type="number" id="s-tr" value="${_sett.maxTrucks||20}"/></div>
+          <div class="field"><label class="lbl">Tonnage max / jour (T)</label><input class="inp" type="number" id="s-to" value="${_sett.maxTonnage||500}"/></div>
+        </div>
+        <div class="al al--i mt">Au-delà de la capacité, les nouveaux RDV sont en liste d'attente.</div>
+        <button class="btn btn--p mt" onclick="saveSett()">Enregistrer</button>
       </div>
-      <div class="al al--i mt">ℹ️ Au-delà de la capacité, les nouveaux RDV sont automatiquement en liste d'attente.</div>
-      <button class="btn btn--p mt" onclick="saveSett()">Enregistrer</button>
+      <div class="card">
+        <h3 class="mb">⚠️ Barème des pénalités</h3>
+        <div id="spal"></div>
+        <div class="fg">
+          <div class="field"><label class="lbl">Non-présentation (pts)</label><input class="inp" type="number" id="s-ns" value="${_sett.penaltyNoShow||2}" step="0.5"/></div>
+          <div class="field"><label class="lbl">Retard 30min (pts)</label><input class="inp" type="number" id="s-l30" value="${_sett.penaltyLate30||0.5}" step="0.5"/></div>
+          <div class="field"><label class="lbl">Retard 60min (pts)</label><input class="inp" type="number" id="s-l60" value="${_sett.penaltyLate60||1}" step="0.5"/></div>
+          <div class="field"><label class="lbl">Seuil avertissement (pts)</label><input class="inp" type="number" id="s-warn" value="${_sett.threshWarn||3}" step="0.5"/></div>
+          <div class="field"><label class="lbl">Seuil danger (pts)</label><input class="inp" type="number" id="s-dng" value="${_sett.threshDanger||5}" step="0.5"/></div>
+        </div>
+        <div class="al al--w mt">Email automatique au transporteur à chaque incident enregistré.</div>
+        <button class="btn btn--p mt" onclick="savePenSett()">Enregistrer le barème</button>
+      </div>
     </div>`;
 }
 async function saveSett(){
   await SB.update('settings',{key:'eq.max_trucks_per_day'},{value:document.getElementById('s-tr').value});
   await SB.update('settings',{key:'eq.max_tonnage_per_day'},{value:document.getElementById('s-to').value});
-  _sett={maxTrucks:parseInt(document.getElementById('s-tr').value),maxTonnage:parseInt(document.getElementById('s-to').value)};
+  _sett.maxTrucks=parseInt(document.getElementById('s-tr').value);
+  _sett.maxTonnage=parseInt(document.getElementById('s-to').value);
   showAlert(document.getElementById('sal'),'✅ Paramètres sauvegardés !','success');
+}
+async function savePenSett(){
+  const updates=[['penalty_no_show','s-ns'],['penalty_late_30','s-l30'],['penalty_late_60','s-l60'],['penalty_threshold_warning','s-warn'],['penalty_threshold_danger','s-dng']];
+  for(const[key,id] of updates) await SB.update('settings',{key:`eq.${key}`},{value:document.getElementById(id).value});
+  await reload();
+  showAlert(document.getElementById('spal'),'✅ Barème sauvegardé !','success');
+}
+
+// ── EXPORT PDF PLANNING ───────────────────────────────
+function exportPlanningPDF(date){
+  const da=_appts.filter(a=>a.date===date&&a.status!=='cancelled').sort((a,b)=>a.slot.localeCompare(b.slot));
+  const conf=da.filter(a=>a.status==='confirmed');
+  const wl=da.filter(a=>a.status==='waitlist');
+  const tonn=conf.reduce((s,a)=>s+parseFloat(a.tonnage||0),0);
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/>
+  <title>Planning Sojalim — ${fmtDate(date)}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Arial,sans-serif;color:#1a1a14;font-size:12px}
+    .page{max-width:210mm;margin:0 auto;padding:12mm 15mm}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:8mm;border-bottom:3px solid #1a3a2a;margin-bottom:6mm}
+    .header-left h1{font-family:Georgia,serif;font-size:20pt;color:#1a3a2a;line-height:1.2}
+    .header-left h1 span{color:#c9a84c;font-size:13pt;display:block}
+    .header-left p{color:#5a5a46;font-size:9pt;margin-top:2mm}
+    .header-right{text-align:right}
+    .date-badge{background:#1a3a2a;color:white;padding:3mm 5mm;border-radius:6px;font-size:10pt;font-weight:700;display:inline-block;margin-bottom:2mm}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin-bottom:6mm}
+    .stat{border:1.5px solid #e0ddd5;border-radius:6px;padding:3mm 4mm;text-align:center}
+    .stat-val{font-size:16pt;font-weight:800;line-height:1;font-family:Georgia,serif}
+    .stat-lbl{font-size:7.5pt;color:#9a9a80;margin-top:1mm}
+    .stat-ok{border-color:#d4edda;background:#eef7f2}.stat-ok .stat-val{color:#2d6a4f}
+    .stat-gold{border-color:#ffe082;background:#fffdf0}.stat-gold .stat-val{color:#c9a84c}
+    .section-title{font-family:Georgia,serif;font-size:11pt;color:#1a3a2a;margin-bottom:3mm;padding-bottom:1.5mm;border-bottom:1px solid #e0ddd5}
+    table{width:100%;border-collapse:collapse;margin-bottom:6mm}
+    th{background:#1a3a2a;color:white;padding:2.5mm 3mm;text-align:left;font-size:8pt;font-weight:700;text-transform:uppercase}
+    td{padding:2.5mm 3mm;border-bottom:1px solid #f0ede8;font-size:9pt;vertical-align:middle}
+    tr:nth-child(even) td{background:#faf8f4}
+    .slot-chip{background:#1a3a2a;color:white;padding:1mm 2.5mm;border-radius:4px;font-weight:700;font-size:8.5pt;display:inline-block}
+    .slot-chip.wl{background:#e67e22}
+    .badge-load{background:#eef7f2;color:#2d6a4f;padding:.5mm 2mm;border-radius:3px;font-size:7.5pt;font-weight:600}
+    .plate{font-family:monospace;font-weight:700;font-size:9.5pt;color:#1a3a2a}
+    .wl-section{background:#fff8e6;border:1px solid #ffe082;border-radius:6px;padding:3mm 4mm;margin-bottom:6mm}
+    .wl-title{color:#e67e22;font-weight:700;font-size:9pt;margin-bottom:2mm}
+    .wl-item{display:flex;gap:3mm;align-items:center;padding:1.5mm 0;border-bottom:1px solid #ffe082}
+    .wl-item:last-child{border-bottom:none}
+    .footer{border-top:2px solid #1a3a2a;padding-top:4mm;display:flex;justify-content:space-between;margin-top:4mm}
+    .footer-left{color:#9a9a80;font-size:7.5pt;line-height:1.6}
+    .footer-logo{font-family:Georgia,serif;font-size:10pt;color:#1a3a2a;font-weight:700}
+    .footer-logo span{color:#c9a84c}
+    .sig-box{border:1px dashed #9a9a80;border-radius:6px;padding:3mm;margin-top:4mm;display:flex;gap:8mm}
+    .sig-field{flex:1;text-align:center}
+    .sig-label{font-size:7.5pt;color:#9a9a80;margin-bottom:6mm}
+    .sig-line{border-bottom:1px solid #9a9a80;margin-bottom:1.5mm}
+    .sig-name{font-size:7pt;color:#9a9a80}
+    @media print{.no-print{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+  </style></head><body><div class="page">
+    <div class="no-print" style="text-align:right;margin-bottom:5mm">
+      <button onclick="window.print()" style="background:#1a3a2a;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:11pt;cursor:pointer;font-weight:700">🖨 Imprimer / Enregistrer en PDF</button>
+    </div>
+    <div class="header">
+      <div class="header-left">
+        <h1>Sojalim<span>Sanders Euralis</span></h1>
+        <p>193 Impasse Lautrec · 65500 Vic-en-Bigorre · 05 62 96 00 00</p>
+        <p style="color:#9a9a80;font-size:8pt">SIRET 820 327 658 RCS Tarbes · Sanders Euralis SAS</p>
+      </div>
+      <div class="header-right">
+        <div class="date-badge">${fmtDate(date)}</div>
+        <p style="font-size:8.5pt;color:#5a5a46">Planning chargements</p>
+        <p style="font-size:7.5pt;color:#9a9a80;margin-top:1mm">Édité le ${new Date().toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat stat-ok"><div class="stat-val">${conf.length}</div><div class="stat-lbl">RDV confirmés</div></div>
+      <div class="stat stat-gold"><div class="stat-val">${tonn.toFixed(0)}T</div><div class="stat-lbl">Tonnage total</div></div>
+      <div class="stat"><div class="stat-val" style="color:#2980b9">${new Set(conf.map(a=>a.company_name)).size}</div><div class="stat-lbl">Transporteurs</div></div>
+      <div class="stat" style="${wl.length>0?'border-color:#fcc;background:#fff5f5':'border-color:#d4edda;background:#eef7f2'}"><div class="stat-val" style="color:${wl.length>0?'#e74c3c':'#2d6a4f'}">${wl.length}</div><div class="stat-lbl">Liste d'attente</div></div>
+    </div>
+    <div class="section-title">📋 Rendez-vous confirmés (${conf.length})</div>
+    ${conf.length===0?'<p style="color:#9a9a80;text-align:center;padding:8mm">Aucun rendez-vous confirmé</p>':`
+    <table>
+      <thead><tr>
+        <th style="width:14mm">Créneau</th><th style="width:22mm">Chauffeur</th>
+        <th style="width:20mm">Téléphone</th><th style="width:18mm">Immatriculation</th>
+        <th style="width:26mm">Société</th><th style="width:28mm">Chargement</th>
+        <th style="width:11mm">Tonnage</th><th style="width:22mm">Bon de cmd</th><th>Notes</th>
+      </tr></thead>
+      <tbody>${conf.map(a=>`<tr>
+        <td><span class="slot-chip">${a.slot.slice(0,5)}</span><br><span style="font-size:7pt;color:#9a9a80">→ ${addMins(a.slot.slice(0,5),30)}</span></td>
+        <td style="font-weight:700">${a.driver_name}</td>
+        <td style="font-size:8.5pt">${a.driver_phone||'—'}</td>
+        <td><span class="plate">${a.truck_plate}</span></td>
+        <td style="font-size:8.5pt">${a.company_name||'—'}</td>
+        <td><span class="badge-load">${a.load_type}</span></td>
+        <td style="font-weight:700;color:#2d6a4f;text-align:center">${a.tonnage}T</td>
+        <td style="font-size:8pt;color:#9a9a80">${a.order_number}</td>
+        <td style="font-size:8pt;color:#5a5a46;font-style:italic">${a.notes||'—'}</td>
+      </tr>`).join('')}</tbody>
+    </table>`}
+    ${wl.length>0?`<div class="wl-section"><div class="wl-title">⏳ Liste d'attente (${wl.length} RDV)</div>
+    ${wl.map(a=>`<div class="wl-item"><span class="slot-chip wl">${a.slot.slice(0,5)}</span><span style="font-weight:700;width:35mm">${a.driver_name}</span><span style="color:#5a5a46;width:28mm">${a.company_name||'—'}</span><span class="plate">${a.truck_plate}</span><span style="color:#e67e22;font-weight:600;margin-left:auto">${a.load_type} · ${a.tonnage}T</span></div>`).join('')}</div>`:''}
+    <div class="sig-box">
+      <div class="sig-field"><div class="sig-label">Responsable Sojalim</div><div class="sig-line"></div><div class="sig-name">Signature et tampon</div></div>
+      <div class="sig-field"><div class="sig-label">Visa sécurité site</div><div class="sig-line"></div><div class="sig-name">Signature</div></div>
+      <div class="sig-field"><div class="sig-label">Observations</div><div style="border-bottom:1px solid #9a9a80;min-height:12mm"></div></div>
+    </div>
+    <div class="footer">
+      <div class="footer-left"><div>Sojalim — 193 Impasse Lautrec, 65500 Vic-en-Bigorre · 05 62 96 00 00</div><div>Document généré le ${new Date().toLocaleString('fr-FR')} · Usage interne confidentiel</div></div>
+      <div class="footer-right"><div class="footer-logo">SOJALIM<span> · Sanders Euralis</span></div><div style="font-size:7.5pt;color:#9a9a80">Seule unité de trituration de soja en Occitanie</div></div>
+    </div>
+  </div></body></html>`);
+  w.document.close();
+  setTimeout(()=>w.focus(),300);
+}
+
+// ── HISTORIQUE CONNEXIONS ─────────────────────────────
+async function rLogs(){
+  const c=document.getElementById('ac');
+  const logs=await SB.select('login_logs',{select:'*',order:'created_at.desc',limit:'200'}).catch(()=>[]);
+  const success=logs.filter(l=>l.status==='success').length;
+  const failed=logs.filter(l=>l.status==='failed').length;
+  const today=logs.filter(l=>l.created_at?.startsWith(todayStr())).length;
+  const uniq=new Set(logs.filter(l=>l.status==='success').map(l=>l.user_id)).size;
+  c.innerHTML=`
+    <h2>🔐 Historique des connexions</h2>
+    <div class="g4 mb">
+      <div class="card" style="border-left:4px solid #27ae60;padding:1.1rem"><div>✅</div><div style="font-size:1.8rem;font-weight:800;color:#27ae60">${success}</div><div style="font-size:.78rem;color:var(--muted)">Connexions réussies</div></div>
+      <div class="card" style="border-left:4px solid var(--red);padding:1.1rem"><div>❌</div><div style="font-size:1.8rem;font-weight:800;color:var(--red)">${failed}</div><div style="font-size:.78rem;color:var(--muted)">Échecs de connexion</div></div>
+      <div class="card" style="border-left:4px solid var(--blue);padding:1.1rem"><div>📅</div><div style="font-size:1.8rem;font-weight:800;color:var(--blue)">${today}</div><div style="font-size:.78rem;color:var(--muted)">Connexions aujourd'hui</div></div>
+      <div class="card" style="border-left:4px solid var(--gold);padding:1.1rem"><div>👥</div><div style="font-size:1.8rem;font-weight:800;color:var(--gold)">${uniq}</div><div style="font-size:.78rem;color:var(--muted)">Utilisateurs distincts</div></div>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:1rem">Journal des connexions</h3>
+      ${logs.length===0?'<p class="muted tc" style="padding:2rem">Aucun log disponible — les connexions futures seront enregistrées ici</p>':`
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.84rem">
+        <thead><tr style="border-bottom:2px solid var(--border)">
+          <th style="text-align:left;padding:.55rem .8rem;color:var(--muted);font-size:.73rem;text-transform:uppercase">Date / Heure</th>
+          <th style="text-align:left;padding:.55rem .8rem;color:var(--muted);font-size:.73rem;text-transform:uppercase">Utilisateur</th>
+          <th style="text-align:left;padding:.55rem .8rem;color:var(--muted);font-size:.73rem;text-transform:uppercase">Rôle</th>
+          <th style="text-align:center;padding:.55rem .8rem;color:var(--muted);font-size:.73rem;text-transform:uppercase">Statut</th>
+          <th style="text-align:left;padding:.55rem .8rem;color:var(--muted);font-size:.73rem;text-transform:uppercase">Appareil</th>
+        </tr></thead>
+        <tbody>${logs.map(l=>{
+          const u=_users.find(x=>x.id===l.user_id);
+          const isMobile=/Mobile|Android|iPhone/i.test(l.user_agent||'');
+          const browser=l.user_agent?.includes('Chrome')?'Chrome':l.user_agent?.includes('Firefox')?'Firefox':l.user_agent?.includes('Safari')?'Safari':'Autre';
+          return`<tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:.6rem .8rem;color:var(--sub);font-size:.82rem;white-space:nowrap">${fmtDT(l.created_at)}</td>
+            <td style="padding:.6rem .8rem"><div style="font-weight:700;color:var(--green);font-size:.88rem">${u?u.first_name+' '+u.last_name:l.email}</div><div style="font-size:.76rem;color:var(--muted)">${l.email}</div></td>
+            <td style="padding:.6rem .8rem"><span class="badge role-${l.role}">${l.role}</span></td>
+            <td style="padding:.6rem .8rem;text-align:center"><span class="badge ${l.status==='success'?'badge--g':'badge--r'}">${l.status==='success'?'✅ Succès':'❌ Échec'}</span></td>
+            <td style="padding:.6rem .8rem;font-size:.79rem;color:var(--sub)">${isMobile?'📱 Mobile':'💻 Desktop'} · ${browser}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>`}
+    </div>`;
+}
+
+// ── NOTES ─────────────────────────────────────────────
+let _notesUserId=null,_notesUserName='';
+
+async function rNotes(){
+  const c=document.getElementById('ac');
+  const transporters=_users.filter(u=>u.role==='transporter'||u.role==='driver').sort((a,b)=>a.company.localeCompare(b.company));
+  let notesHtml='';
+  if(_notesUserId){
+    const notes=await SB.select('notes',{user_id:`eq.${_notesUserId}`,select:'*',order:'pinned.desc,created_at.desc'}).catch(()=>[]);
+    notesHtml=`<div class="card">
+      <div class="section-hdr" style="margin-bottom:1rem">
+        <h3 style="margin:0">📝 ${_notesUserName}</h3>
+        <button class="btn btn--o btn--sm" onclick="_notesUserId=null;rNotes()">← Retour</button>
+      </div>
+      <div style="background:var(--g10);border-radius:10px;padding:1rem;margin-bottom:1.2rem;border:1px solid var(--g20)">
+        <div class="field" style="margin-bottom:.7rem">
+          <textarea class="ta" id="new-note" placeholder="Ajouter une note sur ce transporteur…" style="min-height:80px"></textarea>
+        </div>
+        <div class="flex gap-sm fxc">
+          <label class="flex gap-sm fxc" style="cursor:pointer">
+            <input type="checkbox" id="note-pin" style="width:16px;height:16px"/>
+            <span style="font-size:.85rem;color:var(--sub)">📌 Épingler</span>
+          </label>
+          <button class="btn btn--p btn--sm" onclick="addNote('${_notesUserId}')">✚ Ajouter</button>
+        </div>
+        <div id="note-al" style="margin-top:.5rem"></div>
+      </div>
+      ${notes.length===0?'<p class="muted tc" style="padding:1.5rem">Aucune note pour ce transporteur</p>':
+      notes.map(n=>{
+        const author=_users.find(u=>u.id===n.created_by);
+        return`<div style="background:${n.pinned?'#fffdf0':'white'};border:1.5px solid ${n.pinned?'#ffe082':'var(--border)'};border-radius:10px;padding:1rem 1.2rem;margin-bottom:.7rem;position:relative">
+          ${n.pinned?'<div style="position:absolute;top:.7rem;right:.8rem;font-size:1.1rem">📌</div>':''}
+          <p style="color:var(--text);line-height:1.6;font-size:.9rem;margin-bottom:.6rem;white-space:pre-wrap;padding-right:${n.pinned?'1.5rem':'0'}">${n.content}</p>
+          <div class="flex fxb fxc" style="flex-wrap:wrap;gap:.5rem">
+            <div style="font-size:.76rem;color:var(--muted)">👤 ${author?author.first_name+' '+author.last_name:'Admin'} · ${fmtDT(n.created_at)}</div>
+            <div class="flex gap-sm">
+              <button class="btn btn--sm" style="background:${n.pinned?'#fff8e6':'var(--g10)'};color:${n.pinned?'var(--orange)':'var(--mid)'};border:1px solid ${n.pinned?'#ffe082':'var(--g20)'}" onclick="togglePin('${n.id}',${!n.pinned})">${n.pinned?'Désépingler':'📌 Épingler'}</button>
+              <button class="btn btn--r btn--sm" onclick="deleteNote('${n.id}')">🗑</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+  c.innerHTML=`
+    <h2>📝 Notes sur les transporteurs</h2>
+    ${!_notesUserId?`<div class="card">
+      <p style="color:var(--sub);font-size:.88rem;margin-bottom:1.2rem">Notes privées visibles uniquement par les administrateurs. Cliquez sur un transporteur pour gérer ses notes.</p>
+      <div>${transporters.map(u=>{
+        const score=_scores.find(s=>s.id===u.id);
+        return`<div class="user-card" style="cursor:pointer" onclick="_notesUserId='${u.id}';_notesUserName='${u.first_name} ${u.last_name} (${u.company})';rNotes()">
+          <div class="user-card__avatar" style="background:${u.role==='driver'?'var(--blue)':'var(--mid)'}">${u.role==='driver'?'🚗':'🚛'}</div>
+          <div class="user-card__info">
+            <div class="user-card__name">${u.first_name} ${u.last_name} <span class="badge role-${u.role}">${u.role}</span>${score?.alert_level==='danger'?'<span class="badge badge--r" style="margin-left:.3rem">⚠️</span>':score?.alert_level==='warning'?'<span class="badge badge--o" style="margin-left:.3rem">🟠</span>':''}</div>
+            <div class="user-card__sub">${u.email} · ${u.company}</div>
+          </div>
+          <span style="color:var(--mid);font-size:1.2rem">→</span>
+        </div>`;
+      }).join('')}</div>
+    </div>`:''}
+    ${notesHtml}`;
+}
+
+async function addNote(userId){
+  const content=document.getElementById('new-note')?.value.trim();
+  const pinned=document.getElementById('note-pin')?.checked||false;
+  const al=document.getElementById('note-al');
+  if(!content){al.innerHTML='<div class="al al--e">La note ne peut pas être vide.</div>';return;}
+  try{
+    await SB.insert('notes',{user_id:userId,content,pinned,created_by:_adm.id});
+    al.innerHTML='<div class="al al--s">✅ Note ajoutée !</div>';
+    document.getElementById('new-note').value='';
+    document.getElementById('note-pin').checked=false;
+    setTimeout(()=>rNotes(),800);
+  }catch(e){al.innerHTML=`<div class="al al--e">${e.message}</div>`;}
+}
+async function togglePin(noteId,pinned){
+  await SB.update('notes',{id:`eq.${noteId}`},{pinned,updated_at:new Date().toISOString()});
+  rNotes();
+}
+async function deleteNote(noteId){
+  if(!confirm('Supprimer cette note ?'))return;
+  await SB.delete('notes',{id:`eq.${noteId}`});
+  rNotes();
 }
 
 document.addEventListener('DOMContentLoaded',init);

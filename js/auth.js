@@ -20,6 +20,12 @@ const Auth = {
     const ok = await SB.rpc('check_password', { input_password: password, hashed_password: u.password_hash });
     if (!ok) throw new Error('Email ou mot de passe incorrect.');
     await SB.update('users', {id:`eq.${u.id}`}, {last_login: new Date().toISOString()});
+    // Log connexion réussie
+    SB.insert('login_logs', {
+      user_id: u.id, email: u.email, role: u.role,
+      user_agent: navigator.userAgent.slice(0,200),
+      status: 'success'
+    }).catch(()=>{});
     delete u.password_hash;
     this.setUser(u);
     return u;
