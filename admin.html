@@ -335,7 +335,8 @@ function rSearch(){
     ${(_gt==='all'||_gt==='appts')&&ar.length>0?`<div class="mb"><h3 class="mb">📋 Rendez-vous (${ar.length})</h3>${ar.map(a=>{const sc=a.status==='cancelled'?'var(--red)':a.status==='waitlist'?'var(--orange)':'#27ae60';return`<div class="card card--b" style="border-left:4px solid ${sc};margin-bottom:.5rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap;padding:.85rem 1.1rem"><span style="background:${sc};color:white;border-radius:6px;padding:.2rem .55rem;font-size:.78rem;font-weight:700">${a.slot.slice(0,5)}</span><div style="flex:1"><div style="font-weight:700;color:var(--green)">${fmtDate(a.date)}</div><div style="font-size:.78rem;color:var(--sub)">👤 ${a.driver_name} · 🚛 ${a.truck_plate} · 🏢 ${a.company_name||'—'}</div></div><div style="font-size:.7rem;color:var(--muted);font-family:monospace">${a.id}</div></div>`;}).join('')}</div>`:''}
     ${(_gt==='all'||_gt==='users')&&ur.length>0?`<div><h3 class="mb">👥 Comptes (${ur.length})</h3>${ur.map(u=>{const score=_scores.find(s=>s.id===u.id);return`<div class="user-card"><div class="user-card__avatar" style="background:${u.role==='admin'?'var(--gold)':u.role==='driver'?'var(--blue)':'var(--mid)'}">${u.role==='admin'?'👑':'🚛'}</div><div class="user-card__info"><div class="user-card__name">${u.first_name} ${u.last_name} <span class="badge role-${u.role}">${u.role}</span>${score?.alert_level==='danger'?'<span class="badge badge--r" style="margin-left:.3rem">⚠️</span>':score?.alert_level==='warning'?'<span class="badge badge--o" style="margin-left:.3rem">🟠</span>':''}</div><div class="user-card__sub">${u.email} · ${u.company}</div></div><span class="badge ${u.status==='active'?'badge--g':u.status==='pending'?'badge--o':'badge--r'}">${u.status==='active'?'✅':u.status==='pending'?'⏳':'🔴'}</span></div>`;}).join('')}</div>`:''}
     ${q.length>=2&&ar.length===0&&ur.length===0?`<div class="tc" style="padding:3rem;color:var(--muted)">Aucun résultat pour « ${_gq} »</div>`:''}`;
-  document.getElementById('gs')?.focus();
+  const gs=document.getElementById('gs');
+  if(gs){gs.value=_gq;gs.setAttribute('dir','ltr');gs.style.direction='ltr';gs.style.textAlign='left';gs.focus();const l=gs.value.length;gs.setSelectionRange(l,l);}
 }
 
 // ── COMPTES ────────────────────────────────────────────
@@ -710,24 +711,6 @@ function exportPlanningPDF(date){
       <div class="cb" style="margin-left:3mm;border-color:#e67e22" onclick="this.style.background=this.style.background?'':'#e67e22'"></div>
     </div>`).join('')}
   </div>`:''}
-
-  <!-- Zone signature -->
-  <div class="sig-area">
-    <div class="sig-box">
-      <div class="sig-label">Responsable Sojalim</div>
-      <div class="sig-line"></div>
-      <div class="sig-name">Signature + tampon</div>
-    </div>
-    <div class="sig-box">
-      <div class="sig-label">Visa sécurité site</div>
-      <div class="sig-line"></div>
-      <div class="sig-name">Signature</div>
-    </div>
-    <div class="obs-box">
-      <div class="obs-label">Observations / Incidents du jour</div>
-      <div style="min-height:12mm"></div>
-    </div>
-  </div>
 
   <!-- Footer -->
   <div class="footer">
