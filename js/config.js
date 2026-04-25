@@ -2,7 +2,7 @@
 // js/config.js — Remplacer les 5 valeurs ci-dessous
 // ═══════════════════════════════════════════════════
 const SUPABASE_URL      = 'https://btdrbvbchccqjzwyhcfg.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0ZHJidmJjaGNjcWp6d3loY2ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MzQ1OTcsImV4cCI6MjA5MjUxMDU5N30.FGEwM0hz7kevHw3MM-ZQZtTLeHda4XPxvsYrr2cUcb8';
 const RESEND_API_KEY    = 're_Ns2Be95p_6tQTq2zWHLj71CSy11NHTjvb';
 const APP_URL           = 'https://citronvertueux.github.io/Sojalim';
 const MAIL_FROM         = 'onboarding@resend.dev';
