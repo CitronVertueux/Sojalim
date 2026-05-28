@@ -15,7 +15,7 @@
     <div class="hero__logos">
       <img src="logo.png" alt="Sojalim — Sanders Euralis" style="height:52px;object-fit:contain"/>
     </div>
-    <button onclick="toggleLang()" class="btn btn--sm" style="border-radius:20px;background:#1a3a2a;color:white;border:none" id="lang-btn">🇪🇸 Español</button>
+   <button onclick="toggleLang()" class="btn btn--sm" style="border-radius:20px;background:#1a3a2a;color:white;border:none;font-size:.95rem;padding:.5rem 1.1rem" id="lang-btn">🇪🇸 Español</button>
   </div>
   <div class="hero__body">
     <div>
@@ -43,19 +43,37 @@
     </div>
     <div>
       <div class="auth-box">
-        <div class="demo">
-          <strong>🔑 Comptes de démonstration</strong>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.25rem .8rem;margin-top:.5rem;font-size:.74rem;line-height:1.5">
-            <div><span style="color:var(--muted)">👑 Admin</span><br><code>admin@sojalim.fr</code><br><code>Admin2024!</code></div>
-            <div><span style="color:var(--muted)">🏭 Responsable</span><br><code>manager@sojalim.fr</code><br><code>Manager2024!</code></div>
-            <div style="margin-top:.4rem"><span style="color:var(--muted)">👷 Employé 1</span><br><code>staff1@sojalim.fr</code><br><code>Staff2024!</code></div>
-            <div style="margin-top:.4rem"><span style="color:var(--muted)">👷 Employé 2</span><br><code>staff2@sojalim.fr</code><br><code>Staff2024!</code></div>
-            <div style="margin-top:.4rem"><span style="color:var(--muted)">🚛 Transporteur FR</span><br><code>demo@transports.fr</code><br><code>Demo2024!</code></div>
-            <div style="margin-top:.4rem"><span style="color:var(--muted)">🌍 Transporteur ES</span><br><code>garcia@test.fr</code><br><code>Test2024!</code></div>
-            <div style="margin-top:.4rem"><span style="color:var(--muted)">🚗 Chauffeur 1</span><br><code>chauffeur1@transports.fr</code><br><code>Chauffeur2024!</code></div>
-            <div style="margin-top:.4rem"><span style="color:var(--muted)">🚗 Chauffeur ES</span><br><code>antonio@garcia.fr</code><br><code>Test2024!</code></div>
+                <div class="demo">
+          <strong>🔑 Comptes de démonstration — cliquez pour vous connecter</strong>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.6rem">
+            <button onclick="quickLogin('admin@sojalim.fr','Admin2024!')" style="background:white;border:1.5px solid #1a3a2a;border-radius:8px;padding:.5rem .6rem;cursor:pointer;text-align:left;font-family:inherit;transition:all .15s" onmouseover="this.style.background='#eef7f2'" onmouseout="this.style.background='white'">
+              <div style="font-size:.72rem;color:#9a9a80">👑 Admin</div>
+              <div style="font-size:.78rem;font-weight:700;color:#1a3a2a">admin@sojalim.fr</div>
+            </button>
+            <button onclick="quickLogin('manager@sojalim.fr','Manager2024!')" style="background:white;border:1.5px solid #c9a84c;border-radius:8px;padding:.5rem .6rem;cursor:pointer;text-align:left;font-family:inherit;transition:all .15s" onmouseover="this.style.background='#fffdf0'" onmouseout="this.style.background='white'">
+              <div style="font-size:.72rem;color:#9a9a80">🏭 Responsable</div>
+              <div style="font-size:.78rem;font-weight:700;color:#1a3a2a">manager@sojalim.fr</div>
+            </button>
+            <button onclick="quickLogin('staff1@sojalim.fr','Staff2024!')" style="background:white;border:1.5px solid #2980b9;border-radius:8px;padding:.5rem .6rem;cursor:pointer;text-align:left;font-family:inherit;transition:all .15s" onmouseover="this.style.background='#e8f4ff'" onmouseout="this.style.background='white'">
+              <div style="font-size:.72rem;color:#9a9a80">👷 Employé</div>
+              <div style="font-size:.78rem;font-weight:700;color:#1a3a2a">staff1@sojalim.fr</div>
+            </button>
+            <button onclick="quickLogin('demo@transports.fr','Demo2024!')" style="background:white;border:1.5px solid #2d6a4f;border-radius:8px;padding:.5rem .6rem;cursor:pointer;text-align:left;font-family:inherit;transition:all .15s" onmouseover="this.style.background='#eef7f2'" onmouseout="this.style.background='white'">
+              <div style="font-size:.72rem;color:#9a9a80">🚛 Transporteur FR</div>
+              <div style="font-size:.78rem;font-weight:700;color:#1a3a2a">demo@transports.fr</div>
+            </button>
+            <button onclick="quickLogin('garcia@test.fr','Test2024!')" style="background:white;border:1.5px solid #e67e22;border-radius:8px;padding:.5rem .6rem;cursor:pointer;text-align:left;font-family:inherit;transition:all .15s" onmouseover="this.style.background='#fff8e6'" onmouseout="this.style.background='white'">
+              <div style="font-size:.72rem;color:#9a9a80">🌍 Transporteur ES</div>
+              <div style="font-size:.78rem;font-weight:700;color:#1a3a2a">garcia@test.fr</div>
+            </button>
+            <button onclick="quickLogin('chauffeur1@transports.fr','Chauffeur2024!')" style="background:white;border:1.5px solid #2980b9;border-radius:8px;padding:.5rem .6rem;cursor:pointer;text-align:left;font-family:inherit;transition:all .15s" onmouseover="this.style.background='#e8f4ff'" onmouseout="this.style.background='white'">
+              <div style="font-size:.72rem;color:#9a9a80">🚗 Chauffeur</div>
+              <div style="font-size:.78rem;font-weight:700;color:#1a3a2a">chauffeur1@transports.fr</div>
+            </button>
           </div>
+          <div id="ql-loading" style="display:none;text-align:center;padding:.5rem;font-size:.8rem;color:#2d6a4f">⏳ Connexion en cours…</div>
         </div>
+
         <div id="auth-area"></div>
       </div>
     </div>
@@ -139,7 +157,16 @@ const urlParams=new URLSearchParams(location.search);
 const inviteToken=urlParams.get('token');
 const inviteRole=urlParams.get('role')||'transporter';
 if(inviteToken)mode='register';
-
+async function quickLogin(email, password){
+  document.getElementById('ql-loading').style.display='block';
+  try{
+    const u = await Auth.login(email, password);
+    goApp(u.role);
+  }catch(e){
+    document.getElementById('ql-loading').style.display='none';
+    alert(e.message);
+  }
+}
 function renderAuth(){
   const area=document.getElementById('auth-area');
   if(mode==='login'){
