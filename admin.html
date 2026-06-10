@@ -172,7 +172,13 @@ async function rPlan(){
           ${SLOTS.map(s=>{
             const a=da.find(d=>d.slot.slice(0,5)===s&&d.status!=='cancelled');
             const blocked=_blockedSlots.find(b=>b.slot===s);
-            return`<button onclick="${blocked?`unblockSlot('${blocked.id}')`:`showBlockSlot('${s}')`}" style="padding:.45rem .35rem;border-radius:6px;border:1.5px solid ${blocked?'var(--redbrd)':a?'var(--g20)':'var(--border)'};background:${blocked?'var(--redbg)':a?'var(--g10)':'white'};color:${blocked?'var(--red)':a?'var(--mid)':'var(--muted)'};font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit" title="${blocked?'🔒 Bloqué : '+blocked.reason:''}">${s}${blocked?' 🔒':a?' ✓':''}</button>`;
+            const clickFn=blocked?("unblockSlot('"+blocked.id+"')"):"showBlockSlot('"+s+"')";
+            const borderCol=blocked?'var(--redbrd)':a?'var(--g20)':'var(--border)';
+            const bgCol=blocked?'var(--redbg)':a?'var(--g10)':'white';
+            const txtCol=blocked?'var(--red)':a?'var(--mid)':'var(--muted)';
+            const ico=blocked?' 🔒':a?' ✓':'';
+            const titleTxt=blocked?'🔒 Bloqué : '+blocked.reason:'';
+            return'<button onclick="'+clickFn+'" style="padding:.45rem .35rem;border-radius:6px;border:1.5px solid '+borderCol+';background:'+bgCol+';color:'+txtCol+';font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit" title="'+titleTxt+'">'+s+ico+'</button>';
           }).join('')}
         </div>
         ${_blockedSlots.length>0?`<div class="al al--e" style="font-size:.74rem;padding:.35rem .7rem;margin-bottom:.5rem">🔒 ${_blockedSlots.length} créneau(x) bloqué(s)</div>`:''}
@@ -351,14 +357,15 @@ function rCal(){
           const wl=da.filter(a=>a.status==='waitlist').length;
           const isH=HOLIDAYS.has(ds),isC=!!_cl.find(cl=>cl.date===ds),isW=d.getDay()===0||d.getDay()===6,isT=ds===now,isFull=conf>=maxT;
           const cls=['cal-cell',isT?'today':'',isH||isC||isW?'closed':isFull?'full':conf>0?'has':''].join(' ');
-          return`<div class="${cls}" onclick="${!isW&&!isH&&!isC?`_pd='${ds}';gt('plan')`:''}">
-            <div class="cal-num ${isW||isH||isC?'cl':''} ${isT?'td':''}">${d.getDate()}</div>
-            ${!isW&&!isH&&!isC&&conf>0?`<div class="cal-cnt">🚛 ${conf}/${maxT}</div>`:''}
-            ${wl>0?`<div style="font-size:.66rem;color:var(--orange)">⏳${wl}</div>`:''}
-            ${!isW&&!isH&&!isC&&conf>0?`<div class="cal-bar"><div class="cal-fill ${conf/maxT>=1?'or':''}" style="width:${Math.min(conf/maxT,1)*100}%"></div></div>`:''}
-            ${isH?'<div style="font-size:.62rem;color:var(--red)">Férié</div>':''}
-            ${isC?'<div style="font-size:.62rem;color:var(--red)">Fermé</div>':''}
-          </div>`;
+          const clickHandler=(!isW&&!isH&&!isC)?("_pd='"+ds+"';gt('plan')"):'';
+          return'<div class="'+cls+'" onclick="'+clickHandler+'">'
+            +'<div class="cal-num '+(isW||isH||isC?'cl':'')+' '+(isT?'td':'')+'">'+d.getDate()+'</div>'
+            +(!isW&&!isH&&!isC&&conf>0?'<div class="cal-cnt">🚛 '+conf+'/'+maxT+'</div>':'')
+            +(wl>0?'<div style="font-size:.66rem;color:var(--orange)">⏳'+wl+'</div>':'')
+            +(!isW&&!isH&&!isC&&conf>0?'<div class="cal-bar"><div class="cal-fill '+(conf/maxT>=1?'or':'')+'" style="width:'+Math.min(conf/maxT,1)*100+'%"></div></div>':'')
+            +(isH?'<div style="font-size:.62rem;color:var(--red)">Férié</div>':'')
+            +(isC?'<div style="font-size:.62rem;color:var(--red)">Fermé</div>':'')
+            +'</div>';
         }).join('')}
       </div>
     </div>
