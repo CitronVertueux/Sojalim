@@ -257,10 +257,10 @@ function aRow(a){
         ${[['Chauffeur',a.driver_name],['Tél.',a.driver_phone||'—'],['Plaque',a.truck_plate],['Chargement',a.load_type],['Tonnage',a.tonnage+'T'],['Bon de cmd',a.order_number],['Société',a.company_name||'—'],['Notes',a.notes||'—'],['Créé le',fmtDT(a.created_at)]].map(([l,v])=>`<div><span class="df__l">${l}</span><span class="df__v">${v}</span></div>`).join('')}
       </div>
       <div class="flex gap-sm" style="flex-wrap:wrap">
-        ${wl?`<button class="btn btn--o btn--sm" onclick="promoteA('${a.id}')">⬆️ Confirmer</button>`:''}
-        ${!xx?`<button class="btn btn--r btn--sm" onclick="cancelA('${a.id}')">❌ Annuler</button>`:`<button class="btn btn--o btn--sm" onclick="restoreA('${a.id}')">✅ Restaurer</button>`}
-        ${!xx&&a.user_id?`<button class="btn btn--blue btn--sm" onclick="remindA('${a.id}')">📨 Rappel</button>`:''}
-        ${!xx&&a.transporter_id?`<button class="btn btn--sm" style="background:#fff8e6;color:var(--orange);border:1px solid #ffe082" onclick="showIncForm('${a.id}','${a.transporter_id}','${did}')">⚠️ Incident</button>`:''}
+        ${wl?'<button class="btn btn--o btn--sm" onclick="promoteA(\''+a.id+'\')">⬆️ Confirmer</button>':''}
+        ${!xx?'<button class="btn btn--r btn--sm" onclick="cancelA(\''+a.id+'\')">❌ Annuler</button>':'<button class="btn btn--o btn--sm" onclick="restoreA(\''+a.id+'\')">✅ Restaurer</button>'}
+        ${!xx&&a.user_id?'<button class="btn btn--blue btn--sm" onclick="remindA(\''+a.id+'\')">📨 Rappel</button>':''}
+        ${!xx&&a.transporter_id?'<button class="btn btn--sm" style="background:#fff8e6;color:var(--orange);border:1px solid #ffe082" onclick="showIncForm(\''+a.id+'\',\''+a.transporter_id+'\',\''+did+'\')">⚠️ Incident</button>':''}
         <button class="btn btn--o btn--sm" onclick="delA('${a.id}')">🗑</button>
       </div>
       <div id="inc-form-${did}" style="display:none;margin-top:.8rem"></div>
