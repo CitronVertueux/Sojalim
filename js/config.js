@@ -61,13 +61,32 @@ const HOLIDAYS = new Set([
   '2027-01-01','2027-03-29','2027-05-01','2027-05-08','2027-05-13','2027-05-24',
   '2027-07-14','2027-08-15','2027-11-01','2027-11-11','2027-12-25',
 ]);
-const SLOTS = (() => {
-  const s = [];
-  for (let h = 5; h <= 15; h++)
-    for (let m = 0; m < 60; m += 30)
-      s.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+// Slots dynamiques — mis à jour depuis les settings
+let SLOTS = _generateSlots('05:30','15:30',30);
+
+function _generateSlots(start, end, interval=30){
+  const s=[];
+  const [sh,sm]=start.split(':').map(Number);
+  const [eh,em]=end.split(':').map(Number);
+  let c=sh*60+sm, e=eh*60+em;
+  while(c<=e){
+    s.push(String(Math.floor(c/60)).padStart(2,'0')+':'+String(c%60).padStart(2,'0'));
+    c+=interval;
+  }
   return s;
-})();
+}
+
+async function loadSlotsFromSettings(){
+  try{
+    const rows=await SB.select('settings',{select:'key,value'}).catch(()=>[]);
+    const s={};rows.forEach(r=>s[r.key]=r.value);
+    const start=s.slot_start||'05:30';
+    const end=s.slot_end||'15:30';
+    const interval=parseInt(s.slot_interval||'30');
+    SLOTS=_generateSlots(start,end,interval);
+    return {start,end,interval};
+  }catch(e){ return {start:'05:30',end:'15:30',interval:30}; }
+}
 
 // ── UTILITAIRES ───────────────────────────────────────
 const todayStr = () => new Date().toISOString().split('T')[0];

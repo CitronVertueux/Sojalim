@@ -62,4 +62,9 @@ const RDV = {
   },
 
   async deleteIncident(id) { await SB.delete('incidents',{id:`eq.${id}`}); },
+
+  // ── CRÉNEAUX BLOQUÉS ──────────────────────────────
+  async getBlockedSlots(date){ return await SB.select('blocked_slots',{date:`eq.${date}`,select:'id,slot,reason,created_by'})||[]; },
+  async blockSlot(date,slot,reason,userId){ return await SB.insert('blocked_slots',{date,slot,reason:reason||'',created_by:userId}); },
+  async unblockSlot(id){ return await SB.delete('blocked_slots',{id:`eq.${id}`}); },
 };
