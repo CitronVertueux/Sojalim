@@ -111,7 +111,7 @@
         <h3 id="scht">Horaires d'ouverture</h3>
         <div class="card card--dark" style="margin-top:1rem;padding:1.3rem">
           <div style="color:#e8c96e;font-weight:700;margin-bottom:.25rem" id="schd">Lundi — Vendredi</div>
-          <div style="color:white;font-size:1.9rem;font-family:Georgia,serif;font-weight:700;margin-bottom:.4rem">5h00 — 16h00</div>
+          <div style="color:white;font-size:1.9rem;font-family:Georgia,serif;font-weight:700;margin-bottom:.4rem"><span id='opening-hours'>5h30 — 15h30</span></div>
           <div style="color:rgba(245,240,232,.6);font-size:.78rem;margin-bottom:.9rem" id="schn">Fermé les week-ends et jours fériés</div>
           <div style="border-top:1px solid rgba(255,255,255,.15);padding-top:.7rem;font-size:.8rem;color:rgba(245,240,232,.75)">
             🫘 Tourteau · 🛢️ Huile · 🌿 Coques · 🌾 Graines
@@ -207,6 +207,17 @@ function goApp(role){
   go(isMobile()?'app.html':'dashboard.html');
 }
 
+async function loadOpeningHours(){
+  try{
+    const rows=await SB.select('settings',{select:'key,value'}).catch(()=>[]);
+    const s={};rows.forEach(r=>s[r.key]=r.value);
+    const el=document.getElementById('opening-hours');
+    if(el&&(s.slot_start||s.slot_end)){
+      el.textContent=(s.slot_start||'05:30')+' — '+(s.slot_end||'15:30');
+    }
+  }catch(e){}
+}
+
 async function loadCounter(){
   try{
     const year=new Date().getFullYear();
@@ -220,7 +231,7 @@ async function loadCounter(){
 
 const u=Auth.user();
 if(u&&!inviteToken){goApp(u.role);}
-else{renderAuth();loadCounter();}
+else{renderAuth();loadCounter();loadOpeningHours();}
 </script>
 </body>
 </html>

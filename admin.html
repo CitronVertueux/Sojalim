@@ -64,6 +64,9 @@ async function reload(){
     RDV.getAllScores().catch(()=>[]),
   ]);
   _appts=a;_cl=c;_users=u||[];_sett=s;_invites=i||[];_incidents=inc||[];_scores=sc||[];
+  // Charge les horaires dynamiques
+  const h=await loadSlotsFromSettings().catch(()=>({start:'05:30',end:'15:30'}));
+  _sett.slotStart=h.start;_sett.slotEnd=h.end;
 }
 
 function gt(tab){
@@ -142,8 +145,10 @@ function rDash(){
 }
 
 // ── PLANNING ───────────────────────────────────────────
-function rPlan(){
+let _blockedSlots=[];
+async function rPlan(){
   const c=document.getElementById('ac');
+  _blockedSlots=await RDV.getBlockedSlots(_pd).catch(()=>[]);
   const da=_appts.filter(a=>a.date===_pd);
   const filt=da.filter(a=>_pf==='all'||a.status===_pf).filter(a=>!_ps||[a.driver_name,a.company_name,a.truck_plate,a.order_number,a.id].join(' ').toLowerCase().includes(_ps.toLowerCase())).sort((a,b)=>a.slot.localeCompare(b.slot));
   const confToday=da.filter(a=>a.status==='confirmed');
@@ -162,23 +167,67 @@ function rPlan(){
           <button class="btn btn--o btn--sm" onclick="navD(1)">▶</button>
         </div>
         ${!isDayOpen(_pd,_cl)?'<div class="al al--e" style="font-size:.77rem;padding:.4rem .7rem">⛔ Jour non ouvrable</div>':''}
+        <div style="font-size:.7rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem">🔒 Cliquez pour bloquer un créneau</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem;margin-bottom:.8rem">
-          ${SLOTS.map(s=>{const a=da.find(d=>d.slot.slice(0,5)===s&&d.status!=='cancelled');return`<button style="padding:.45rem .35rem;border-radius:6px;border:1.5px solid ${a?'var(--g20)':'var(--border)'};background:${a?'var(--g10)':'white'};color:${a?'var(--mid)':'var(--muted)'};font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit">${s}${a?' ✓':''}</button>`;}).join('')}
+          ${SLOTS.map(s=>{
+            const a=da.find(d=>d.slot.slice(0,5)===s&&d.status!=='cancelled');
+            const blocked=_blockedSlots.find(b=>b.slot===s);
+            return`<button onclick="${blocked?`unblockSlot('${blocked.id}')`:`showBlockSlot('${s}')`}" style="padding:.45rem .35rem;border-radius:6px;border:1.5px solid ${blocked?'var(--redbrd)':a?'var(--g20)':'var(--border)'};background:${blocked?'var(--redbg)':a?'var(--g10)':'white'};color:${blocked?'var(--red)':a?'var(--mid)':'var(--muted)'};font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit" title="${blocked?'🔒 Bloqué : '+blocked.reason:''}">${s}${blocked?' 🔒':a?' ✓':''}</button>`;
+          }).join('')}
         </div>
+        ${_blockedSlots.length>0?`<div class="al al--e" style="font-size:.74rem;padding:.35rem .7rem;margin-bottom:.5rem">🔒 ${_blockedSlots.length} créneau(x) bloqué(s)</div>`:''}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem">
           ${[['✅',confToday.length,'#27ae60'],['⏳',da.filter(a=>a.status==='waitlist').length,'var(--orange)'],['❌',da.filter(a=>a.status==='cancelled').length,'var(--red)'],['⚖️',confToday.reduce((s,a)=>s+parseFloat(a.tonnage||0),0).toFixed(0)+'T','var(--gold)']].map(([ic,v,col])=>`<div style="border:1px solid var(--border);border-radius:6px;padding:.45rem;text-align:center"><div>${ic}</div><div style="font-size:1rem;font-weight:800;color:${col}">${v}</div></div>`).join('')}
         </div>
+        <div id="block-slot-form" style="margin-top:.6rem"></div>
       </div>
       <div class="card">
         <div class="section-hdr" style="margin-bottom:.9rem">
-          <h3 style="margin:0">Rendez-vous (${filt.length})</h3>
+          <h3 style="margin:0" id="plan-count">Rendez-vous (${filt.length})</h3>
           <div class="flex gap-sm" style="flex-wrap:wrap">${[['all','Tous'],['confirmed','✅'],['waitlist','⏳'],['cancelled','❌']].map(([v,l])=>`<button class="btn btn--pill btn--o ${_pf===v?'on':''}" onclick="_pf='${v}';rPlan()">${l}</button>`).join('')}</div>
         </div>
-        <div class="srch mb"><span class="srch-ico">🔍</span><input class="inp srch-inp" value="${_ps}" placeholder="Chauffeur, plaque, BC, référence…" oninput="_ps=this.value;rPlan()"/></div>
-        ${filt.length===0?'<p class="muted tc" style="padding:1.5rem">Aucun rendez-vous</p>':filt.map(a=>aRow(a)).join('')}
+        <div class="srch mb"><span class="srch-ico">🔍</span><input class="inp srch-inp" id="plan-srch" placeholder="Chauffeur, plaque, BC, référence…" oninput="_ps=this.value;document.getElementById('plan-list').innerHTML=getPlanRows()"/></div>
+        <div id="plan-list">${filt.length===0?'<p class="muted tc" style="padding:1.5rem">Aucun rendez-vous</p>':filt.map(a=>aRow(a)).join('')}</div>
       </div>
-    </div>`;
+    </div>\`;
+  const ps=document.getElementById('plan-srch');
+  if(ps){ps.value=_ps;ps.style.direction='ltr';}
 }
+
+function showBlockSlot(slot){
+  const el=document.getElementById('block-slot-form');
+  if(!el)return;
+  el.innerHTML=`<div class="card card--y" style="padding:.8rem;margin-top:.3rem">
+    <div style="font-weight:700;color:var(--orange);margin-bottom:.5rem">🔒 Bloquer ${slot}</div>
+    <div class="field" style="margin-bottom:.5rem"><input class="inp" id="block-reason" placeholder="Motif (ex: maintenance, pause déjeuner…)" style="font-size:.85rem"/></div>
+    <div class="flex gap-sm">
+      <button class="btn btn--r btn--sm" onclick="doBlockSlot('${slot}')">🔒 Bloquer</button>
+      <button class="btn btn--o btn--sm" onclick="document.getElementById('block-slot-form').innerHTML=''">Annuler</button>
+    </div>
+  </div>\`;
+}
+
+async function doBlockSlot(slot){
+  const reason=document.getElementById('block-reason')?.value.trim()||'Bloqué';
+  try{
+    await RDV.blockSlot(_pd,slot,reason,_adm.id);
+    document.getElementById('block-slot-form').innerHTML='';
+    rPlan();
+  }catch(e){alert('Erreur : '+e.message);}
+}
+
+async function unblockSlot(id){
+  if(!confirm('Débloquer ce créneau ?'))return;
+  await RDV.unblockSlot(id);
+  rPlan();
+}
+
+function getPlanRows(){
+  const da=_appts.filter(a=>a.date===_pd);
+  const filt=da.filter(a=>_pf==='all'||a.status===_pf).filter(a=>!_ps||[a.driver_name,a.company_name,a.truck_plate,a.order_number,a.id].join(' ').toLowerCase().includes(_ps.toLowerCase())).sort((a,b)=>a.slot.localeCompare(b.slot));
+  return filt.length===0?'<p class="muted tc" style="padding:1.5rem">Aucun rendez-vous</p>':filt.map(a=>aRow(a)).join('');
+}
+
 
 function aRow(a){
   const xx=a.status==='cancelled',wl=a.status==='waitlist';
@@ -533,6 +582,16 @@ function rSett(){
     <h2>Paramètres</h2>
     <div class="g2">
       <div class="card">
+        <h3 class="mb">⏰ Horaires d'ouverture</h3>
+        <div id="shal"></div>
+        <div class="fg">
+          <div class="field"><label class="lbl">Heure d'ouverture</label><input class="inp" type="time" id="s-start" value="${_sett.slotStart||'05:30'}"/></div>
+          <div class="field"><label class="lbl">Heure de fermeture</label><input class="inp" type="time" id="s-end" value="${_sett.slotEnd||'15:30'}"/></div>
+        </div>
+        <div class="al al--i mt">Ces horaires s'appliquent à toutes les pages du site (planning, RDV, accueil).</div>
+        <button class="btn btn--p mt" onclick="saveHoraires()">Enregistrer les horaires</button>
+      </div>
+      <div class="card">
         <h3 class="mb">⚙️ Capacité journalière</h3>
         <div id="sal"></div>
         <div class="fg">
@@ -556,6 +615,16 @@ function rSett(){
         <button class="btn btn--p mt" onclick="savePenSett()">Enregistrer le barème</button>
       </div>
     </div>`;
+}
+async function saveHoraires(){
+  const start=document.getElementById('s-start').value;
+  const end=document.getElementById('s-end').value;
+  if(!start||!end){showAlert(document.getElementById('shal'),'Heures invalides.');return;}
+  await SB.update('settings',{key:'eq.slot_start'},{value:start});
+  await SB.update('settings',{key:'eq.slot_end'},{value:end});
+  SLOTS=_generateSlots(start,end,30);
+  _sett.slotStart=start;_sett.slotEnd=end;
+  showAlert(document.getElementById('shal'),`✅ Horaires mis à jour : ${start} – ${end}`,'success');
 }
 async function saveSett(){
   await SB.update('settings',{key:'eq.max_trucks_per_day'},{value:document.getElementById('s-tr').value});

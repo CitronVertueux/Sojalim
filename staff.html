@@ -80,6 +80,8 @@ async function init(){
     _perms.incidents_manage?RDV.getAllIncidents().catch(()=>[]):Promise.resolve([]),
   ]);
   _appts=a;_cl=c;_sett=s;_users=u||[];_scores=sc||[];_incidents=inc||[];
+  // Charge les horaires dynamiques
+  await loadSlotsFromSettings().catch(()=>{});
 
   sTab('plan');
 }
@@ -94,8 +96,10 @@ function sTab(tab){
 }
 
 // ── PLANNING ──────────────────────────────────────────
-function rPlan(){
+let _staffBlockedSlots=[];
+async function rPlan(){
   const c=document.getElementById('staff-content');
+  _staffBlockedSlots=await RDV.getBlockedSlots(_pd).catch(()=>[]);
   const da=_appts.filter(a=>a.date===_pd&&a.status!=='cancelled').sort((a,b)=>a.slot.localeCompare(b.slot));
   const conf=da.filter(a=>a.status==='confirmed');
   const wl=da.filter(a=>a.status==='waitlist');
@@ -109,6 +113,21 @@ function rPlan(){
         <input type="date" value="${_pd}" style="border:1.5px solid var(--border);border-radius:8px;padding:.4rem .7rem;font-weight:700;color:var(--green);font-family:inherit;cursor:pointer" onchange="_pd=this.value;rPlan()"/>
         <button class="btn btn--o btn--sm" onclick="_pd=new Date(new Date(_pd).getTime()+86400000).toISOString().split('T')[0];while(new Date(_pd).getDay()===0||new Date(_pd).getDay()===6)_pd=new Date(new Date(_pd).getTime()+86400000).toISOString().split('T')[0];rPlan()">▶</button>
         ${_perms.planning_export?`<button class="btn btn--g btn--sm" onclick="exportPDF()">📄 Export PDF</button>`:''}
+        ${(_perms.planning_view)?`<button class="btn btn--sm" style="background:#fff8e6;color:var(--orange);border:1px solid #ffe082" onclick="toggleBlockPanel()">🔒 Bloquer un créneau</button>`:''}
+      </div>
+    </div>
+    <div id="staff-block-panel" style="display:none;margin-bottom:1rem">
+      <div class="card card--y" style="padding:1rem">
+        <h4 style="color:var(--orange);margin-bottom:.8rem">🔒 Bloquer / Débloquer des créneaux — ${fmtDate(_pd)}</h4>
+        <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:.3rem;margin-bottom:.8rem">
+          ${SLOTS.map(s=>{
+            const blocked=_staffBlockedSlots.find(b=>b.slot===s);
+            const taken=da.find(d=>d.slot.slice(0,5)===s);
+            return`<button onclick="${blocked?`staffUnblock('${blocked.id}')`:taken?`alert('Ce créneau a déjà un RDV confirmé')`:(`staffBlockSlot('${s}')`)}" style="padding:.4rem .2rem;border-radius:5px;border:1.5px solid ${blocked?'var(--redbrd)':taken?'var(--g20)':'var(--border)'};background:${blocked?'var(--redbg)':taken?'var(--g10)':'white'};color:${blocked?'var(--red)':taken?'var(--mid)':'var(--muted)'};font-size:.72rem;font-weight:600;cursor:pointer;font-family:inherit">${s}${blocked?' 🔒':taken?' ✓':''}</button>`;
+          }).join('')}
+        </div>
+        <div id="staff-block-form"></div>
+        ${_staffBlockedSlots.length>0?`<div style="margin-top:.5rem;font-size:.8rem;color:var(--red);font-weight:600">🔒 ${_staffBlockedSlots.length} créneau(x) bloqué(s) ce jour</div>`:''}
       </div>
     </div>
     <div style="font-size:.88rem;color:var(--sub);margin-bottom:1rem">${fmtDate(_pd)}</div>
@@ -155,6 +174,36 @@ function rPlan(){
       </table>
     </div>`}
     ${wl.length>0?`<div class="card card--y mt"><h3 style="color:var(--orange);margin-bottom:.7rem">⏳ Liste d'attente (${wl.length})</h3>${wl.map(a=>`<div style="display:flex;align-items:center;gap:1rem;padding:.5rem 0;border-bottom:1px dashed #ffe082;font-size:.85rem;flex-wrap:wrap"><span style="background:var(--orange);color:white;padding:.2rem .5rem;border-radius:4px;font-weight:700;font-size:.8rem">${a.slot.slice(0,5)}</span><span style="font-weight:600">${a.driver_name}</span><span style="color:var(--sub)">${a.company_name}</span><span style="font-family:monospace">${a.truck_plate}</span><span style="color:var(--orange);font-weight:600;margin-left:auto">${a.load_type} · ${a.tonnage}T</span></div>`).join('')}</div>`:''}`;
+}
+
+function toggleBlockPanel(){
+  const el=document.getElementById('staff-block-panel');
+  if(el)el.style.display=el.style.display==='block'?'none':'block';
+}
+
+function staffBlockSlot(slot){
+  const form=document.getElementById('staff-block-form');
+  if(!form)return;
+  form.innerHTML=`<div class="flex gap-sm" style="margin-top:.5rem">
+    <input class="inp" id="staff-block-reason" placeholder="Motif (ex: maintenance, pause…)" style="font-size:.83rem;flex:1"/>
+    <button class="btn btn--r btn--sm" onclick="doStaffBlock('${slot}')">🔒 Bloquer</button>
+    <button class="btn btn--o btn--sm" onclick="document.getElementById('staff-block-form').innerHTML=''">✕</button>
+  </div>`;
+}
+
+async function doStaffBlock(slot){
+  const reason=document.getElementById('staff-block-reason')?.value.trim()||'Bloqué';
+  try{
+    await RDV.blockSlot(_pd,slot,reason,_u.id);
+    document.getElementById('staff-block-form').innerHTML='';
+    rPlan();
+  }catch(e){alert('Erreur : '+e.message);}
+}
+
+async function staffUnblock(id){
+  if(!confirm('Débloquer ce créneau ?'))return;
+  await RDV.unblockSlot(id);
+  rPlan();
 }
 
 function toggleCheck(el){
