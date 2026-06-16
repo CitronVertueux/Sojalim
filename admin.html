@@ -590,14 +590,27 @@ function rSett(){
     <h2>Paramètres</h2>
     <div class="g2">
       <div class="card">
-        <h3 class="mb">⏰ Horaires d'ouverture</h3>
+        <h3 class="mb">⏰ Horaires par défaut</h3>
         <div id="shal"></div>
         <div class="fg">
           <div class="field"><label class="lbl">Heure d'ouverture</label><input class="inp" type="time" id="s-start" value="${_sett.slotStart||'05:30'}"/></div>
           <div class="field"><label class="lbl">Heure de fermeture</label><input class="inp" type="time" id="s-end" value="${_sett.slotEnd||'15:30'}"/></div>
         </div>
-        <div class="al al--i mt">Ces horaires s'appliquent à toutes les pages du site (planning, RDV, accueil).</div>
+        <div class="al al--i mt">Ces horaires s'appliquent à tous les jours ouvrables par défaut.</div>
         <button class="btn btn--p mt" onclick="saveHoraires()">Enregistrer les horaires</button>
+      </div>
+      <div class="card">
+        <h3 class="mb">📅 Horaires exceptionnels par jour</h3>
+        <p style="font-size:.83rem;color:var(--sub);margin-bottom:.9rem">Définissez des horaires spécifiques pour un jour précis (ex: journée courte, ouverture tardive).</p>
+        <div id="oh-al"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 2fr auto;gap:.5rem;align-items:end;margin-bottom:.8rem">
+          <div class="field"><label class="lbl">Date</label><input class="inp" type="date" id="oh-date" min="${todayStr()}"/></div>
+          <div class="field"><label class="lbl">Ouverture</label><input class="inp" type="time" id="oh-start" value="05:30"/></div>
+          <div class="field"><label class="lbl">Fermeture</label><input class="inp" type="time" id="oh-end" value="15:30"/></div>
+          <div class="field"><label class="lbl">Motif</label><input class="inp" id="oh-reason" placeholder="Ex: Journée courte, maintenance…"/></div>
+          <button class="btn btn--p" onclick="addOpeningHours()" style="margin-bottom:0">Ajouter</button>
+        </div>
+        <div id="oh-list"></div>
       </div>
       <div class="card">
         <h3 class="mb">⚙️ Capacité journalière</h3>
@@ -623,6 +636,7 @@ function rSett(){
         <button class="btn btn--p mt" onclick="savePenSett()">Enregistrer le barème</button>
       </div>
     </div>`;
+  loadOpeningHoursList('oh-list');
 }
 async function saveHoraires(){
   const start=document.getElementById('s-start').value;
@@ -632,7 +646,56 @@ async function saveHoraires(){
   await SB.update('settings',{key:'eq.slot_end'},{value:end});
   SLOTS=_generateSlots(start,end,30);
   _sett.slotStart=start;_sett.slotEnd=end;
-  showAlert(document.getElementById('shal'),`✅ Horaires mis à jour : ${start} – ${end}`,'success');
+  showAlert(document.getElementById('shal'),'✅ Horaires par défaut mis à jour : '+start+' – '+end,'success');
+}
+
+async function loadOpeningHoursList(targetId){
+  const el=document.getElementById(targetId);
+  if(!el)return;
+  try{
+    const rows=await SB.select('opening_hours',{select:'*',order:'date.asc'});
+    if(!rows||rows.length===0){el.innerHTML='<p class="muted" style="font-size:.83rem">Aucun horaire exceptionnel défini.</p>';return;}
+    el.innerHTML='<div style="margin-top:.3rem">'+rows.map(r=>{
+      return '<div style="display:flex;align-items:center;gap:.8rem;padding:.55rem .8rem;background:var(--g10);border-radius:8px;border:1px solid var(--g20);margin-bottom:.4rem">'
+        +'<strong style="color:var(--green);flex-shrink:0">'+fmtDate(r.date)+'</strong>'
+        +'<span style="background:var(--green);color:white;padding:.15rem .5rem;border-radius:5px;font-size:.78rem;font-weight:700">'+r.slot_start+' – '+r.slot_end+'</span>'
+        +(r.reason?'<span style="flex:1;font-size:.82rem;color:var(--sub)">'+r.reason+'</span>':'<span style="flex:1"></span>')
+        +'<button class="btn btn--r btn--sm" onclick="delOpeningHours(\''+r.id+'\')">🗑</button>'
+        +'</div>';
+    }).join('')+'</div>';
+  }catch(e){el.innerHTML='<div class="al al--e">'+e.message+'</div>';}
+}
+
+async function addOpeningHours(){
+  const date=document.getElementById('oh-date')?.value;
+  const start=document.getElementById('oh-start')?.value;
+  const end=document.getElementById('oh-end')?.value;
+  const reason=document.getElementById('oh-reason')?.value.trim()||'';
+  const al=document.getElementById('oh-al');
+  if(!date||!start||!end){al.innerHTML='<div class="al al--e">Date, heure d\'ouverture et fermeture sont obligatoires.</div>';return;}
+  if(start>=end){al.innerHTML='<div class="al al--e">L\'heure d\'ouverture doit être avant la fermeture.</div>';return;}
+  try{
+    await SB.insert('opening_hours',{date,slot_start:start,slot_end:end,reason,created_by:_adm.id});
+    al.innerHTML='<div class="al al--s">✅ Horaire exceptionnel ajouté pour le '+fmtDate(date)+'</div>';
+    document.getElementById('oh-date').value='';
+    document.getElementById('oh-reason').value='';
+    loadOpeningHoursList('oh-list');
+  }catch(e){
+    if(e.message.includes('unique')||e.message.includes('duplicate')){
+      // Update existing
+      await SB.update('opening_hours',{date:'eq.'+date},{slot_start:start,slot_end:end,reason});
+      al.innerHTML='<div class="al al--s">✅ Horaire mis à jour pour le '+fmtDate(date)+'</div>';
+      loadOpeningHoursList('oh-list');
+    }else{
+      al.innerHTML='<div class="al al--e">'+e.message+'</div>';
+    }
+  }
+}
+
+async function delOpeningHours(id){
+  if(!confirm('Supprimer cet horaire exceptionnel ?'))return;
+  await SB.delete('opening_hours',{id:'eq.'+id});
+  loadOpeningHoursList('oh-list');
 }
 async function saveSett(){
   await SB.update('settings',{key:'eq.max_trucks_per_day'},{value:document.getElementById('s-tr').value});
