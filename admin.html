@@ -195,7 +195,7 @@ async function rPlan(){
         <div class="srch mb"><span class="srch-ico">🔍</span><input class="inp srch-inp" id="plan-srch" placeholder="Chauffeur, plaque, BC, référence…" oninput="_ps=this.value;document.getElementById('plan-list').innerHTML=getPlanRows()"/></div>
         <div id="plan-list">${filt.length===0?'<p class="muted tc" style="padding:1.5rem">Aucun rendez-vous</p>':filt.map(a=>aRow(a)).join('')}</div>
       </div>
-    </div>\`;
+    </div>`;
   const ps=document.getElementById('plan-srch');
   if(ps){ps.value=_ps;ps.style.direction='ltr';}
 }
