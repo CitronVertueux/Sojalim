@@ -203,14 +203,13 @@ async function rPlan(){
 function showBlockSlot(slot){
   const el=document.getElementById('block-slot-form');
   if(!el)return;
-  el.innerHTML=`<div class="card card--y" style="padding:.8rem;margin-top:.3rem">
-    <div style="font-weight:700;color:var(--orange);margin-bottom:.5rem">🔒 Bloquer ${slot}</div>
-    <div class="field" style="margin-bottom:.5rem"><input class="inp" id="block-reason" placeholder="Motif (ex: maintenance, pause déjeuner…)" style="font-size:.85rem"/></div>
-    <div class="flex gap-sm">
-      <button class="btn btn--r btn--sm" onclick="doBlockSlot('${slot}')">🔒 Bloquer</button>
-      <button class="btn btn--o btn--sm" onclick="document.getElementById('block-slot-form').innerHTML=''">Annuler</button>
-    </div>
-  </div>\`;
+  el.innerHTML='<div class="card card--y" style="padding:.8rem;margin-top:.3rem">'
+    +'<div style="font-weight:700;color:var(--orange);margin-bottom:.5rem">🔒 Bloquer '+slot+'</div>'
+    +'<div class="field" style="margin-bottom:.5rem"><input class="inp" id="block-reason" placeholder="Motif (ex: maintenance, pause déjeuner…)" style="font-size:.85rem"/></div>'
+    +'<div class="flex gap-sm">'
+    +'<button class="btn btn--r btn--sm" onclick="doBlockSlot(\''+slot+'\')">🔒 Bloquer</button>'
+    +'<button class="btn btn--o btn--sm" onclick="document.getElementById(\'block-slot-form\').innerHTML=\'\'">Annuler</button>'
+    +'</div></div>';
 }
 
 async function doBlockSlot(slot){
