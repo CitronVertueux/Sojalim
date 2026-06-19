@@ -153,23 +153,25 @@ async function rPlan(){
           <th style="color:white;padding:.7rem 1rem;text-align:center;font-size:.78rem;text-transform:uppercase">Tonnage</th>
           <th style="color:white;padding:.7rem 1rem;text-align:left;font-size:.78rem;text-transform:uppercase">Bon de cmd</th>
           ${_perms.incidents_manage?`<th style="color:white;padding:.7rem 1rem;text-align:center;font-size:.78rem;text-transform:uppercase">Incident</th>`:''}
+          <th style="color:white;padding:.7rem 1rem;text-align:center;font-size:.78rem;text-transform:uppercase">Navette</th>
           <th style="color:white;padding:.7rem 1rem;text-align:center;font-size:.78rem;text-transform:uppercase">✓</th>
         </tr></thead>
         <tbody>
           ${conf.map((a,i)=>`<tr style="border-bottom:1px solid var(--border);background:${i%2===0?'white':'#faf8f4'}" id="row-${a.id}">
             <td style="padding:.75rem 1rem"><span style="background:var(--green);color:white;padding:.25rem .6rem;border-radius:5px;font-weight:700;font-size:.82rem">${a.slot.slice(0,5)}</span></td>
-            <td style="padding:.75rem 1rem;font-weight:700">${a.driver_name}<br><span style="font-size:.75rem;color:var(--muted)">${a.driver_phone||''}</span></td>
+            <td style="padding:.75rem 1rem;font-weight:700">${a.driver_name}${a.vic_vic?' <span style="background:#1a3a2a;color:white;font-size:.6rem;padding:.1rem .35rem;border-radius:4px;vertical-align:middle">🚐 VIC-VIC</span>':''}<br><span style="font-size:.75rem;color:var(--muted)">${a.driver_phone||''}</span></td>
             <td style="padding:.75rem 1rem;font-family:monospace;font-weight:700">${a.truck_plate}</td>
             <td style="padding:.75rem 1rem;font-size:.84rem">${a.company_name||'—'}</td>
             <td style="padding:.75rem 1rem"><span style="background:var(--g10);color:var(--mid);padding:.2rem .55rem;border-radius:4px;font-size:.78rem;font-weight:600">${a.load_type}</span></td>
             <td style="padding:.75rem 1rem;text-align:center;font-weight:700;color:var(--mid)">${a.tonnage}T</td>
             <td style="padding:.75rem 1rem;font-size:.82rem;color:var(--sub)">${a.order_number}</td>
             ${_perms.incidents_manage?`<td style="padding:.75rem 1rem;text-align:center"><button class="btn btn--sm" style="background:#fff8e6;color:var(--orange);border:1px solid #ffe082;font-size:.75rem" onclick="showInc('${a.id}','${a.transporter_id}')">⚠️</button></td>`:''}
+            <td style="padding:.75rem 1rem;text-align:center">${a.vic_vic?`<button class="btn btn--sm" style="background:#e8f4ff;color:#2980b9;border:1px solid #aed6f1;font-size:.72rem" onclick="staffRemoveVicVic('${a.id}')">🚐 Annuler</button>`:`<button class="btn btn--sm" style="background:#1a3a2a;color:white;border:none;font-size:.72rem" onclick="staffMakeVicVic('${a.id}')">🚐 Créer</button>`}</td>
             <td style="padding:.75rem 1rem;text-align:center">
               <div onclick="toggleCheck(this)" style="width:22px;height:22px;border:2px solid var(--green);border-radius:4px;cursor:pointer;margin:0 auto;transition:all .15s"></div>
             </td>
           </tr>
-          <tr id="inc-row-${a.id}" style="display:none"><td colspan="9" style="padding:0 1rem 1rem"></td></tr>`).join('')}
+          <tr id="inc-row-${a.id}" style="display:none"><td colspan="10" style="padding:0 1rem 1rem"></td></tr>`).join('')}
         </tbody>
       </table>
     </div>`}
@@ -211,6 +213,30 @@ function toggleCheck(el){
   el.style.background=on?'':'#1a3a2a';
   el.style.borderColor=on?'var(--green)':'#1a3a2a';
   el.innerHTML=on?'':'<svg width="13" height="10" viewBox="0 0 13 10" fill="none"><path d="M1 5L5 9L12 1" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>';
+}
+
+async function staffMakeVicVic(id){
+  const a=_appts.find(x=>x.id===id);
+  if(!a)return;
+  if(!confirm('🚐 Créer une navette Vic-Vic ?\n\nUn RDV de livraison prioritaire sera créé automatiquement à la Réception pour le '+fmtDate(a.date)+' à '+a.slot.slice(0,5)+'.'))return;
+  try{
+    const res=await RDV.createVicVic(a);
+    _appts=_appts.map(x=>x.id===id?{...x,vic_vic:true,reception_rdv_id:res.receptionId}:x);
+    alert('✅ Navette Vic-Vic créée !\n\nRDV prioritaire ajouté à la Réception ('+VicVic.mapSlotToCreneau(a.slot)+').');
+    rPlan();
+  }catch(e){alert('❌ Erreur Réception : '+e.message);}
+}
+
+async function staffRemoveVicVic(id){
+  const a=_appts.find(x=>x.id===id);
+  if(!a)return;
+  if(!confirm('Annuler la navette Vic-Vic ?\n\nLe RDV lié à la Réception sera également annulé.'))return;
+  try{
+    await RDV.cancelVicVic(a);
+    _appts=_appts.map(x=>x.id===id?{...x,vic_vic:false,reception_rdv_id:null}:x);
+    alert('✅ Navette annulée.');
+    rPlan();
+  }catch(e){alert('❌ Erreur : '+e.message);}
 }
 
 function showInc(apptId,userId){
