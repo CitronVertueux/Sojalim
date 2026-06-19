@@ -159,7 +159,7 @@ const VicVic = {
   RECEPTION_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFub2FjbHN2YnVlbHpibXBzZGliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNjE3NDUsImV4cCI6MjA5NDgzNzc0NX0.MeEGe77mVVGO--BvUGglKfH_NkFV2gbRY6GupX0sl6c',
 
   // ID matière "Soja en graines" côté Réception (à ajuster si besoin)
-  SOJA_MATIERE_ID: 'GSOJ',
+  SOJA_MATIERE_ID: 'MAT1781866503132',
 
   // Créneaux Réception (plages de 2h)
   CRENEAUX: ['06:00–08:00','08:00–10:00','10:00–12:00','12:00–14:00','14:00–16:00','16:00–18:00'],
