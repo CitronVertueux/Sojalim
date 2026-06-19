@@ -149,3 +149,59 @@ function installPWA(btn) {
 }
 const LANG = localStorage.getItem('slm_lang') || 'fr';
 function toggleLang() { localStorage.setItem('slm_lang', LANG==='fr'?'es':'fr'); location.reload(); }
+
+// ══════════════════════════════════════════════════════
+// MODULE VIC-VIC — Pont vers le Supabase de la Réception
+// ══════════════════════════════════════════════════════
+const VicVic = {
+  // Config Supabase RÉCEPTION
+  RECEPTION_URL: 'https://qnoaclsvbuelzbmpsdib.supabase.co',
+  RECEPTION_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFub2FjbHN2YnVlbHpibXBzZGliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNjE3NDUsImV4cCI6MjA5NDgzNzc0NX0.MeEGe77mVVGO--BvUGglKfH_NkFV2gbRY6GupX0sl6c',
+
+  // ID matière "Soja en graines" côté Réception (à ajuster si besoin)
+  SOJA_MATIERE_ID: 'GSOJ',
+
+  // Créneaux Réception (plages de 2h)
+  CRENEAUX: ['06:00–08:00','08:00–10:00','10:00–12:00','12:00–14:00','14:00–16:00','16:00–18:00'],
+
+  // Mappe une heure Sojalim (ex "07:30") vers une plage Réception (ex "06:00–08:00")
+  mapSlotToCreneau(slot){
+    const [h] = (slot||'06:00').slice(0,5).split(':').map(Number);
+    if (h < 8)  return '06:00–08:00';
+    if (h < 10) return '08:00–10:00';
+    if (h < 12) return '10:00–12:00';
+    if (h < 14) return '12:00–14:00';
+    if (h < 16) return '14:00–16:00';
+    return '16:00–18:00';
+  },
+
+  _headers(){
+    return {
+      'apikey': this.RECEPTION_KEY,
+      'Authorization': 'Bearer ' + this.RECEPTION_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+    };
+  },
+
+  async insertReceptionRdv(rdv){
+    const res = await fetch(this.RECEPTION_URL + '/rest/v1/rdv', {
+      method: 'POST', headers: this._headers(), body: JSON.stringify(rdv),
+    });
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : null;
+    if (!res.ok) throw new Error('Réception : ' + (Array.isArray(data)?data[0]?.message:data?.message||'erreur'));
+    return Array.isArray(data) ? data[0] : data;
+  },
+
+  async cancelReceptionRdv(receptionId){
+    const url = this.RECEPTION_URL + '/rest/v1/rdv?id=eq.' + encodeURIComponent(receptionId);
+    await fetch(url, { method:'PATCH', headers:this._headers(), body:JSON.stringify({statut:'annule'}) });
+  },
+
+  async getReceptionRdvsForDate(date){
+    const url = this.RECEPTION_URL + '/rest/v1/rdv?date=eq.' + date + '&select=id,creneau,statut,vic_vic,prioritaire,transporteur,immat,tonnage';
+    const res = await fetch(url, { headers: this._headers() });
+    return res.ok ? res.json() : [];
+  },
+};
