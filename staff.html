@@ -230,7 +230,7 @@ async function rStaffVicVic(){
   +'<div class="fg">'
   +'<div class="field"><label class="lbl">Date *</label><input class="inp" type="date" id="vv-date2" min="'+todayStr()+'" onchange="loadVvCreneaux2()"/></div>'
   +'<div class="field"><label class="lbl">Créneau Réception *</label><select class="sel" id="vv-creneau2"><option value="">— choisir une date d\'abord —</option></select></div>'
-  +'<div class="field"><label class="lbl">Transporteur *</label><select class="sel" id="vv-transporter2"><option value="">— Sélectionner —</option>'+transporters.map(t=>'<option value="'+t.id+'">'+t.company+'</option>').join('')+'</select></div>'
+  +'<div class="field"><label class="lbl">Transporteur *</label><select class="sel" id="vv-transporter2"><option value="">— Sélectionner —</option>'+transporters.sort((a,b)=>a.id==='6accbe74-48e5-4f7c-a685-6447f7910298'?-1:b.id==='6accbe74-48e5-4f7c-a685-6447f7910298'?1:a.company.localeCompare(b.company)).map(t=>'<option value="'+t.id+'"'+(t.id==="6accbe74-48e5-4f7c-a685-6447f7910298"?' selected':'')+'>'+t.company+'</option>').join('')+'</select></div>'
   +'<div class="field"><label class="lbl">Tonnage (T) *</label><input class="inp" type="number" id="vv-tonnage2" placeholder="28"/></div>'
   +'</div>'
   +'<button class="btn btn--p mt" onclick="submitStaffVicVic()">🚐 Créer la navette</button>'

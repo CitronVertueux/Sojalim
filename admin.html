@@ -379,7 +379,7 @@ async function rVicVic(){
   +'<div class="fg">'
   +'<div class="field"><label class="lbl">Date *</label><input class="inp" type="date" id="vv-date" min="'+todayStr()+'" onchange="loadVvCreneaux()"/></div>'
   +'<div class="field"><label class="lbl">Créneau Réception *</label><select class="sel" id="vv-creneau"><option value="">— choisir une date d\'abord —</option></select></div>'
-  +'<div class="field"><label class="lbl">Transporteur *</label><select class="sel" id="vv-transporter"><option value="">— Sélectionner —</option>'+transporters.map(t=>'<option value="'+t.id+'">'+t.company+' ('+t.first_name+' '+t.last_name+')</option>').join('')+'</select></div>'
+  +'<div class="field"><label class="lbl">Transporteur</label><div class="inp" style="background:var(--g10);color:var(--mid);cursor:default">🚛 Transports Mesples</div></div>'
   +'<div class="field"><label class="lbl">Tonnage (T) *</label><input class="inp" type="number" id="vv-tonnage" placeholder="28" inputmode="decimal"/></div>'
   +'</div>'
   +'<button class="btn btn--p mt" onclick="submitVicVic()">🚐 Créer la navette</button>'
@@ -437,13 +437,10 @@ async function submitVicVic(){
 
   const btn=document.querySelector('[onclick="submitVicVic()"]');
   const done=btnLoading(btn,'⏳ Création…');
-
-  // Slot Sojalim = heure de début du créneau Réception
   const slot=creneau.split('–')[0].trim()+':00';
   const apptId='RDV-VV-'+Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).slice(2,4).toUpperCase();
 
   try{
-    // 1. Crée le RDV sur Sojalim
     const sojalimAppt=await SB.insert('appointments',{
       id:apptId,
       user_id:tid,
