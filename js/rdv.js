@@ -67,4 +67,41 @@ const RDV = {
   async getBlockedSlots(date){ return await SB.select('blocked_slots',{date:`eq.${date}`,select:'id,slot,reason,created_by'})||[]; },
   async blockSlot(date,slot,reason,userId){ return await SB.insert('blocked_slots',{date,slot,reason:reason||'',created_by:userId}); },
   async unblockSlot(id){ return await SB.delete('blocked_slots',{id:`eq.${id}`}); },
+
+  // ── NAVETTE VIC-VIC (Sojalim → Réception) ─────────
+  async createVicVic(appt){
+    // 1. Marque le RDV Sojalim comme Vic-Vic
+    // 2. Crée le RDV miroir sur la Réception (même date, même heure, prioritaire)
+    const receptionCreneau = VicVic.mapSlotToCreneau(appt.slot);
+    const receptionRdv = {
+      date: appt.date,
+      creneau: receptionCreneau,
+      matiere_id: VicVic.SOJA_MATIERE_ID,
+      matiere_nom: 'Soja en graines (Vic-Vic)',
+      tonnage: parseInt(appt.tonnage)||0,
+      bl: appt.order_number||('VIC-'+appt.id),
+      transporteur: appt.company_name||'Sojalim',
+      immat: appt.truck_plate||'',
+      chauffeur: appt.driver_name||'',
+      tel: appt.driver_phone||'',
+      statut: 'confirme',
+      vic_vic: true,
+      prioritaire: true,
+      sojalim_rdv_id: appt.id,
+      source: 'sojalim'
+    };
+    const created = await VicVic.insertReceptionRdv(receptionRdv);
+    const recId = created?.id ? String(created.id) : null;
+    // Met à jour le RDV Sojalim avec le lien
+    await SB.update('appointments',{id:`eq.${appt.id}`},{vic_vic:true,reception_rdv_id:recId});
+    return {receptionRdv: created, receptionId: recId};
+  },
+
+  async cancelVicVic(appt){
+    // Annule aussi le RDV Réception lié
+    if(appt.reception_rdv_id){
+      await VicVic.cancelReceptionRdv(appt.reception_rdv_id);
+    }
+    await SB.update('appointments',{id:`eq.${appt.id}`},{vic_vic:false,reception_rdv_id:null});
+  },
 };
