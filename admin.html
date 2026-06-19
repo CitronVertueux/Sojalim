@@ -19,9 +19,11 @@
     <nav class="sb__nav">
       <button class="sb__lnk on" onclick="gt('dash')"      id="n-dash">🏠 Tableau de bord</button>
       <button class="sb__lnk"   onclick="gt('plan')"      id="n-plan">📅 Planning</button>
+      <button class="sb__lnk"   onclick="gt('vicvic')"    id="n-vicvic">🚐 Navette Vic-Vic</button>
       <button class="sb__lnk"   onclick="gt('cal')"       id="n-cal">📆 Calendrier</button>
       <button class="sb__lnk"   onclick="gt('search')"    id="n-search">🔍 Recherche</button>
       <button class="sb__lnk"   onclick="gt('users')"     id="n-users">👥 Comptes</button>
+      <button class="sb__lnk"   onclick="gt('vicvic')"    id="n-vicvic">🚐 Navettes Vic-Vic</button>
       <button class="sb__lnk"   onclick="gt('staff')"     id="n-staff">🏭 Équipe Sojalim</button>
       <button class="sb__lnk"   onclick="gt('perms')"     id="n-perms">🔑 Permissions</button>
       <button class="sb__lnk"   onclick="gt('invites')"   id="n-invites">✉️ Invitations</button>
@@ -76,7 +78,7 @@ function gt(tab){
   document.querySelectorAll('.sb__lnk').forEach(b=>b.classList.remove('on'));
   const nb=document.getElementById('n-'+tab);if(nb)nb.classList.add('on');
   document.getElementById('ac').innerHTML='<div class="loader"><div class="spinner"></div></div>';
-  const fns={dash:rDash,plan:rPlan,cal:rCal,search:rSearch,users:rUsers,staff:rStaff,perms:rPerms,invites:rInvites,incidents:rIncidents,logs:rLogs,notes:rNotes,closures:rClosures,stats:rStats,sett:rSett};
+  const fns={dash:rDash,plan:rPlan,cal:rCal,search:rSearch,users:rUsers,staff:rStaff,perms:rPerms,invites:rInvites,incidents:rIncidents,logs:rLogs,notes:rNotes,closures:rClosures,stats:rStats,sett:rSett,vicvic:rVicVic};
   setTimeout(()=>{if(fns[tab])fns[tab]();},40);
 }
 
@@ -263,7 +265,6 @@ function aRow(a){
         ${!xx?'<button class="btn btn--r btn--sm" onclick="cancelA(\''+a.id+'\')">❌ Annuler</button>':'<button class="btn btn--o btn--sm" onclick="restoreA(\''+a.id+'\')">✅ Restaurer</button>'}
         ${!xx&&a.user_id?'<button class="btn btn--blue btn--sm" onclick="remindA(\''+a.id+'\')">📨 Rappel</button>':''}
         ${!xx&&a.transporter_id?'<button class="btn btn--sm" style="background:#fff8e6;color:var(--orange);border:1px solid #ffe082" onclick="showIncForm(\''+a.id+'\',\''+a.transporter_id+'\',\''+did+'\')">⚠️ Incident</button>':''}
-        ${!xx?(a.vic_vic?'<button class="btn btn--sm" style="background:#e8f4ff;color:#2980b9;border:1px solid #aed6f1" onclick="removeVicVic(\''+a.id+'\')">🚐 Annuler navette</button>':'<button class="btn btn--sm" style="background:#1a3a2a;color:white;border:none" onclick="makeVicVic(\''+a.id+'\')">🚐 Navette Vic-Vic</button>'):''}
         <button class="btn btn--o btn--sm" onclick="delA('${a.id}')">🗑</button>
       </div>
       <div id="inc-form-${did}" style="display:none;margin-top:.8rem"></div>
@@ -358,6 +359,143 @@ async function removeVicVic(id){
     alert('✅ Navette annulée — le RDV Réception a été annulé.');
     rPlan();
   }catch(e){alert('❌ Erreur : '+e.message);}
+}
+
+// ── NAVETTES VIC-VIC ─────────────────────────────────
+let _vvCreneaux=[];
+async function rVicVic(){
+  const c=document.getElementById('ac');
+  const transporters=_users.filter(u=>u.role==='transporter'&&u.status==='active');
+  // Navettes existantes
+  const existing=_appts.filter(a=>a.vic_vic).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30);
+  c.innerHTML='<h2>🚐 Navettes Vic-Vic</h2>'
+  +'<div class="g2" style="margin-bottom:1.5rem">'
+
+  // ── Formulaire création
+  +'<div class="card">'
+  +'<h3 class="mb">Créer une navette</h3>'
+  +'<p style="font-size:.83rem;color:var(--sub);margin-bottom:1rem">Le créneau disponible à la Réception sera chargé automatiquement selon la date choisie.</p>'
+  +'<div id="vv-al"></div>'
+  +'<div class="fg">'
+  +'<div class="field"><label class="lbl">Date *</label><input class="inp" type="date" id="vv-date" min="'+todayStr()+'" onchange="loadVvCreneaux()"/></div>'
+  +'<div class="field"><label class="lbl">Créneau Réception *</label><select class="sel" id="vv-creneau"><option value="">— choisir une date d\'abord —</option></select></div>'
+  +'<div class="field"><label class="lbl">Transporteur *</label><select class="sel" id="vv-transporter"><option value="">— Sélectionner —</option>'+transporters.map(t=>'<option value="'+t.id+'">'+t.company+' ('+t.first_name+' '+t.last_name+')</option>').join('')+'</select></div>'
+  +'<div class="field"><label class="lbl">Tonnage (T) *</label><input class="inp" type="number" id="vv-tonnage" placeholder="28" inputmode="decimal"/></div>'
+  +'</div>'
+  +'<button class="btn btn--p mt" onclick="submitVicVic()">🚐 Créer la navette</button>'
+  +'</div>'
+
+  // ── Navettes existantes
+  +'<div class="card">'
+  +'<h3 class="mb">Navettes récentes ('+existing.length+')</h3>'
+  +(existing.length===0?'<p class="muted tc" style="padding:2rem">Aucune navette créée</p>':
+    existing.map(a=>{
+      const t=_users.find(u=>u.id===a.transporter_id);
+      return '<div class="card card--b" style="margin-bottom:.6rem;padding:.9rem 1.1rem;border-left:4px solid #1a3a2a">'
+        +'<div class="flex fxb" style="flex-wrap:wrap;gap:.5rem">'
+        +'<div>'
+        +'<div style="font-weight:700;color:var(--green)">'+fmtDate(a.date)+'<span style="margin-left:.5rem;background:#1a3a2a;color:white;font-size:.72rem;padding:.15rem .45rem;border-radius:4px">'+a.slot.slice(0,5)+'</span></div>'
+        +'<div style="font-size:.82rem;color:var(--sub);margin-top:.2rem">🚛 '+(t?.company||a.company_name||'—')+' · ⚖️ '+a.tonnage+'T · 📋 '+a.order_number+'</div>'
+        +(a.reception_rdv_id?'<div style="font-size:.75rem;color:#2980b9;margin-top:.2rem">🔗 Réception : '+VicVic.mapSlotToCreneau(a.slot)+'</div>':'')
+        +'</div>'
+        +'<div class="flex gap-sm">'
+        +'<span class="badge badge--g">🚐 Vic-Vic</span>'
+        +'<button class="btn btn--r btn--sm" onclick="cancelVvAppt(\''+a.id+'\')">Annuler</button>'
+        +'</div></div></div>';
+    }).join('')
+  )
+  +'</div></div>';
+}
+
+async function loadVvCreneaux(){
+  const date=document.getElementById('vv-date')?.value;
+  const sel=document.getElementById('vv-creneau');
+  if(!date||!sel)return;
+  sel.innerHTML='<option value="">⏳ Chargement…</option>';
+  try{
+    // Récupère les créneaux déjà pris à la Réception ce jour
+    const taken=await VicVic.getReceptionRdvsForDate(date).catch(()=>[]);
+    const takenCreneaux=new Set((taken||[]).map(r=>r.creneau));
+    const available=VicVic.CRENEAUX.filter(cr=>!takenCreneaux.has(cr));
+    if(available.length===0){
+      sel.innerHTML='<option value="">⚠️ Aucun créneau disponible</option>';
+    }else{
+      sel.innerHTML='<option value="">— Choisir un créneau —</option>'+available.map(cr=>'<option value="'+cr+'">'+cr+(takenCreneaux.size>0?' ('+takenCreneaux.size+' pris)':'')+'</option>').join('');
+    }
+  }catch(e){sel.innerHTML='<option value="">Erreur : '+e.message+'</option>';}
+}
+
+async function submitVicVic(){
+  const date=document.getElementById('vv-date')?.value;
+  const creneau=document.getElementById('vv-creneau')?.value;
+  const tid=document.getElementById('vv-transporter')?.value;
+  const tonnage=document.getElementById('vv-tonnage')?.value;
+  const al=document.getElementById('vv-al');
+  if(!date||!creneau||!tid||!tonnage){al.innerHTML='<div class="al al--e">Tous les champs sont obligatoires.</div>';return;}
+  const transporter=_users.find(u=>u.id===tid);
+  if(!transporter){al.innerHTML='<div class="al al--e">Transporteur introuvable.</div>';return;}
+
+  const btn=document.querySelector('[onclick="submitVicVic()"]');
+  const done=btnLoading(btn,'⏳ Création…');
+
+  // Slot Sojalim = heure de début du créneau Réception
+  const slot=creneau.split('–')[0].trim()+':00';
+  const apptId='RDV-VV-'+Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).slice(2,4).toUpperCase();
+
+  try{
+    // 1. Crée le RDV sur Sojalim
+    const sojalimAppt=await SB.insert('appointments',{
+      id:apptId,
+      user_id:tid,
+      transporter_id:tid,
+      date,slot,
+      driver_name:transporter.first_name+' '+transporter.last_name,
+      driver_phone:transporter.phone||'',
+      truck_plate:'VIC-VIC',
+      company_name:transporter.company,
+      load_type:'Soja en graines',
+      tonnage:parseInt(tonnage),
+      order_number:'VV-'+date.replace(/-/g,''),
+      notes:'Navette Vic-Vic',
+      status:'confirmed',
+      vic_vic:true,
+    });
+
+    // 2. Crée le RDV sur la Réception
+    const receptionRdv=await VicVic.insertReceptionRdv({
+      date,
+      creneau,
+      matiere_id:VicVic.SOJA_MATIERE_ID,
+      matiere_nom:'Graine de soja',
+      tonnage:parseInt(tonnage),
+      bl:'VV-'+date.replace(/-/g,''),
+      transporteur:transporter.company,
+      immat:'VIC-VIC',
+      chauffeur:transporter.first_name+' '+transporter.last_name,
+      tel:transporter.phone||'',
+      statut:'confirme',
+      vic_vic:true,
+      prioritaire:true,
+      sojalim_rdv_id:apptId,
+      source:'sojalim',
+    });
+
+    // 3. Met à jour le RDV Sojalim avec l'ID Réception
+    await SB.update('appointments',{id:'eq.'+apptId},{reception_rdv_id:String(receptionRdv?.id||'')});
+
+    _appts.push({...sojalimAppt,vic_vic:true,reception_rdv_id:String(receptionRdv?.id||'')});
+    al.innerHTML='<div class="al al--s">✅ Navette créée ! Sojalim '+slot.slice(0,5)+' · Réception '+creneau+'</div>';
+    setTimeout(()=>rVicVic(),1500);
+  }catch(e){done();al.innerHTML='<div class="al al--e">❌ '+e.message+'</div>';}
+}
+
+async function cancelVvAppt(id){
+  const a=_appts.find(x=>x.id===id);
+  if(!a||!confirm('Annuler cette navette Vic-Vic ?'))return;
+  await RDV.cancel(id);
+  if(a.reception_rdv_id)await VicVic.cancelReceptionRdv(a.reception_rdv_id);
+  _appts=_appts.map(x=>x.id===id?{...x,status:'cancelled'}:x);
+  rVicVic();
 }
 async function remindA(id){const a=_appts.find(x=>x.id===id);const u=_users.find(x=>x.id===a?.user_id);if(u&&a)await Email.reminder(u,a);alert('📨 Rappel envoyé !');}
 function printPlan(){const da=_appts.filter(a=>a.date===_pd&&a.status!=='cancelled').sort((a,b)=>a.slot.localeCompare(b.slot));const rows=da.map(a=>`${a.slot.slice(0,5)}–${addMins(a.slot.slice(0,5),30)}  |  ${a.driver_name}  |  ${a.driver_phone||'—'}  |  ${a.truck_plate}  |  ${a.load_type}  |  ${a.tonnage}T  |  ${a.order_number}`).join('\n');const w=window.open('','_blank');w.document.write('<html><body><pre style="font-family:monospace;padding:2rem;font-size:13px"><h2>Planning Sojalim — '+fmtDate(_pd)+'</h2><hr>\n'+(rows||'Aucun rendez-vous')+'\n\nTotal : '+da.filter(a=>a.status==='confirmed').length+' RDV · '+da.reduce((s,a)=>s+parseFloat(a.tonnage||0),0).toFixed(0)+'T</pre></body></html>');w.print();}
